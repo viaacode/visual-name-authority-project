@@ -1,6 +1,6 @@
 import csv
 import json
-from person import Person, get_dbnl_id, get_wikidata_id
+from person import Person, beautify_string, get_dbnl_id, get_wikidata_id
 from typing import List
 
 JSON_KEY_NAMES = {
@@ -86,13 +86,6 @@ def parse_authorities(person: Person, authorities: List[dict]) -> None:
             person.belelite = id
         if authority_type.strip() == AUTHORITIES['DBNL']:
             person.dbnl = get_dbnl_id(authority_url)
-
-
-def beautify_string(value: str) -> str:
-    value = value.strip()
-    if value.endswith(','):
-        value = value[:-1]
-    return value
 
 # main
 if __name__ == "__main__":

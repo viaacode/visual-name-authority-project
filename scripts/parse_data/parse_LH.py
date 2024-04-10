@@ -1,9 +1,12 @@
 import xml.etree.ElementTree as ET
 import os
 import csv
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # constans
-FOLDER = '../lh-archiefvormers-export'
+FOLDER = os.getenv('LETTERENHUIS_FOLDER')
 XML_TAG_NAMES = {
     'FIRST_NAME': 'RestOfName',
     'LAST_NAME': 'PrimaryName',

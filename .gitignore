@@ -1,4 +1,6 @@
 data/
+.env
 *.csv
 .vscode
+._DS_Store
 *__pycache__/

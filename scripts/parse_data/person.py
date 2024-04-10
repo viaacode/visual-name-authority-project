@@ -27,6 +27,7 @@ class Person:
 
     def __init__(self) -> None:
         self.uri = ''
+        self.id = ''
         self.fullname = ''
         self.firstname = ''
         self.lastname = ''
@@ -97,3 +98,9 @@ def get_dbnl_id(url: str) -> str:
     """
     id = url.split('=')[-1]
     return id
+
+def beautify_string(value: str) -> str:
+    value = value.strip()
+    if value.endswith(','):
+        value = value[:-1]
+    return value
