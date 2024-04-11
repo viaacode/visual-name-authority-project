@@ -1,4 +1,5 @@
 from typing import List
+from csv import writer
 
 class Person:
     """
@@ -54,8 +55,8 @@ class Person:
             List[str]: A list containing person properties in a specific order.
         """
         return [self.uri, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
-                self.place_of_death, self.deathdate, self.occupation, self.dbnl, self.odis, self.wikidata, 
-                self.viaf, self.rkd, self.picture]
+                self.place_of_death, self.deathdate, self.sex, self.occupation, self.dbnl, self.odis, self.wikidata, 
+                self.viaf, self.rkd, self.belelite, self.picture]
     
     def print_kadoc_properties(self) -> List[str]:
         """
@@ -118,3 +119,13 @@ def beautify_string(value: str) -> str:
     if value.endswith(','):
         value = value[:-1]
     return value
+
+def write_csv(filename, persons: List[Person]):
+     with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
+        csv_writer = writer(csv_file)
+        header = ['URI', 'volledige naam', 'voornaam', 'achternaam', 'alias', 
+                  'geboorteplaats', 'geboortedatum', 'sterfplaats', 
+                    'sterfdatum', 'geslacht', 'beroep', 'DBNL ID', 'ODIS', 'Wikidata ID', 'VIAF ID', 'RKD ID', 'Belelite', 'foto']
+        csv_writer.writerow(header)
+        for person in persons:
+            csv_writer.writerow(person.print_properties())

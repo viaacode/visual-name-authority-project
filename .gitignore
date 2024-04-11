@@ -4,3 +4,4 @@ data/
 .vscode
 ._DS_Store
 *__pycache__/
+*/private
