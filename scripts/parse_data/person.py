@@ -53,7 +53,7 @@ class Person:
         Returns:
             List[str]: A list containing person properties in a specific order.
         """
-        return [self.uri, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
+        return [self.uri, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
                 self.place_of_death, self.deathdate, self.occupation, self.dbnl, self.odis, self.wikidata, 
                 self.viaf, self.rkd, self.picture]
     
@@ -66,6 +66,7 @@ class Person:
         """
         return [self.uri, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
                 self.place_of_death, self.deathdate,self.sex, self.dbnl, self.wikidata, self.viaf, self.belelite, self.picture]
+    
 
 class Alias:
     """
@@ -98,6 +99,19 @@ def get_dbnl_id(url: str) -> str:
     """
     id = url.split('=')[-1]
     return id
+
+def get_viaf_id(url: str) -> str:
+    """
+        Extracts the VIAF ID from the VIAF URI.
+
+        Returns:
+            str: the Wikidata QID.
+        """
+    id = url.split('/')[-1].strip()
+    if id.isdigit():
+        return id
+    else:
+        return ""
 
 def beautify_string(value: str) -> str:
     value = value.strip()
