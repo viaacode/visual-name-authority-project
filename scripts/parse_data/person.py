@@ -6,7 +6,8 @@ class Person:
     Represents a person entity with various attributes.
 
     Attributes:
-        uri (str): The unique identifier for the person.
+        uri (str): The URI for the person.
+        id (str): The unique identifier for the person.
         fullname (str): The full name of the person.
         firstname (str): The first name(s) of the person.
         lastname (str): The last name(s) of the person.
@@ -15,15 +16,15 @@ class Person:
         deathdate (str): The date of death of the person.
         place_of_birth (str): The place of birth of the person.
         place_of_death (str): The place of death of the person.
-        sex (str): The gender of the person.
+        sex (str): The sex of the person.
         occupation (str): The occupation or profession of the person.
         picture (str): Information about the picture of the person.
-        dbnl (str): Information about the person from the Digital Library for Dutch Literature.
-        odis (str): Information about the person from ODIS.
-        wikidata (str): Information about the person from Wikidata.
-        viaf (str): Information about the person from VIAF.
-        rkd (str): Information about the person from RKD.
-        belelite (str): Information about the person from Belelite.
+        dbnl (str): Identifier for the person from the Digital Library for Dutch Literature.
+        odis (str): Identifier for the person from ODIS.
+        wikidata (str): Identifier for the person from Wikidata.
+        viaf (str): Identifier for the person from VIAF.
+        rkd (str): Identifier for the person from RKD.
+        isni (str): Identifier for the person from ISNI
     """
 
     def __init__(self) -> None:
@@ -45,7 +46,7 @@ class Person:
         self.wikidata = ''
         self.viaf = ''
         self.rkd = ''
-        self.belelite = ''
+        self.isni = ''
 
     def print_properties(self) -> List[str]:        
         """
@@ -54,20 +55,9 @@ class Person:
         Returns:
             List[str]: A list containing person properties in a specific order.
         """
-        return [self.uri, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
+        return [self.uri, self.id, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
                 self.place_of_death, self.deathdate, self.sex, self.occupation, self.dbnl, self.odis, self.wikidata, 
-                self.viaf, self.rkd, self.belelite, self.picture]
-    
-    def print_kadoc_properties(self) -> List[str]:
-        """
-        Returns a list of person properties specifically for use with KADOC data.
-
-        Returns:
-            List[str]: A list containing person properties in a specific order.
-        """
-        return [self.uri, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
-                self.place_of_death, self.deathdate,self.sex, self.dbnl, self.wikidata, self.viaf, self.belelite, self.picture]
-    
+                self.viaf, self.rkd, self.isni, self.picture]
 
 class Alias:
     """
@@ -123,9 +113,10 @@ def beautify_string(value: str) -> str:
 def write_csv(filename, persons: List[Person]):
      with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
         csv_writer = writer(csv_file)
-        header = ['URI', 'volledige naam', 'voornaam', 'achternaam', 'alias', 
+        header = ['URI', 'ID', 'volledige naam', 'voornaam', 'achternaam', 'alias', 
                   'geboorteplaats', 'geboortedatum', 'sterfplaats', 
-                    'sterfdatum', 'geslacht', 'beroep', 'DBNL ID', 'ODIS', 'Wikidata ID', 'VIAF ID', 'RKD ID', 'Belelite', 'foto']
+                    'sterfdatum', 'geslacht', 'beroep', 'DBNL ID', 'ODIS ID', 'Wikidata ID', 'VIAF ID', 
+                    'RKD ID', 'ISNI ID', 'foto']
         csv_writer.writerow(header)
         for person in persons:
             csv_writer.writerow(person.print_properties())

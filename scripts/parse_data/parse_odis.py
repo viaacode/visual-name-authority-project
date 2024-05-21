@@ -1,9 +1,10 @@
-import csv
 import json
-from person import Person, beautify_string, get_dbnl_id, get_wikidata_id
+from person import Person, beautify_string, get_dbnl_id, get_wikidata_id, write_csv
 from typing import List
+from sys import argv
 
 JSON_KEY_NAMES = {
+    'URI': 'URL',
     'NAMES': 'PS_NAMEN',
     'NAME': 'NAAM',
     'NAME_TYPE': 'NAAMSOORT',
@@ -19,15 +20,17 @@ JSON_KEY_NAMES = {
 AUTHORITIES = {
     'VIAF': 'Virtual International Authority File (VIAF)',
     'WIKIDATA': 'Wikidata',
-    'BELELITE': 'Belelite',
     'DBNL': 'Digitale Bibliotheek voor de Nederlandse Letteren'
 }
 
-file = "Data/KADOC_ODIS/20240327_export_ODIS_PS_KADOC.json"
+file = argv[1]
+output = argv[2]
 
 def get_person_data(json_data: dict) -> Person:
     person = Person()
-    person.uri = "{}_{}".format(json_data['RUBRIEK'], json_data['ID'])
+    person.uri = "{}".format(json_data[JSON_KEY_NAMES['URI']])
+    person.odis = "{}_{}".format(json_data['RUBRIEK'], json_data['ID'])
+    print(person.odis)
     person.fullname = "{}".format(json_data['OMSCHRIJVING'])
 
     steekkaarten = json_data['STEEKKAART']
@@ -39,7 +42,9 @@ def get_person_data(json_data: dict) -> Person:
         person.deathdate = steekkaart.get(JSON_KEY_NAMES['DEATH_DATE'], '')
         person.place_of_birth = steekkaart.get(JSON_KEY_NAMES['BIRTH_PLACE'], '')
         person.place_of_death = steekkaart.get(JSON_KEY_NAMES['DEATH_PLACE'], '')
-        person.sex = steekkaart.get(JSON_KEY_NAMES['SEX'], '')
+        
+        sex = steekkaart.get(JSON_KEY_NAMES['SEX'], '')
+        set_sex(person, sex)
         
         pictures = steekkaart.get(JSON_KEY_NAMES['PICTURE'])
         if pictures:
@@ -56,13 +61,15 @@ def parse_names(person: Person, names: List[dict]) -> None:
     lastnames = []
     for name in names:
         naamsoort = name['NAAMSOORT']
-        naam = name['NAAM'].rstrip()
-        if 'voornaam' in naamsoort:
-            person.firstname += '{} '.format(naam)
-        elif 'familienaam' in naamsoort:
-            lastnames.append(naam)
-        else:
-            person.alias += '{}, '.format(naam)
+        naam = name['NAAM']
+        if naam:
+            naam = naam.rstrip()
+            if 'voornaam' in naamsoort:
+                person.firstname += '{} '.format(naam)
+            elif 'familienaam' in naamsoort:
+                lastnames.append(naam)
+            else:
+                person.alias += '{}, '.format(naam)
     person.lastname = lastnames[0]
     lastnames_length = len(lastnames)
     if lastnames_length > 1:
@@ -76,16 +83,20 @@ def parse_authorities(person: Person, authorities: List[dict]) -> None:
     for authority in authorities:
         authority_type = authority['B_LINKTXT']
         authority_url = authority['B_URL']
-        if authority_type == AUTHORITIES['VIAF']:
-            id = authority_url.split('/')[-2]
-            person.viaf = id
-        if authority_type == AUTHORITIES['WIKIDATA']:
-            person.wikidata = get_wikidata_id(authority_url)
-        if authority_type.strip() == AUTHORITIES['BELELITE']:
-            id = authority_url.split('/')[-1]
-            person.belelite = id
-        if authority_type.strip() == AUTHORITIES['DBNL']:
-            person.dbnl = get_dbnl_id(authority_url)
+        if authority_type:
+            if authority_type == AUTHORITIES['VIAF']:
+                id = authority_url.split('/')[-2]
+                person.viaf = id
+            if authority_type == AUTHORITIES['WIKIDATA']:
+                person.wikidata = get_wikidata_id(authority_url)
+            if authority_type.strip() == AUTHORITIES['DBNL']:
+                person.dbnl = get_dbnl_id(authority_url)
+
+def set_sex(person: Person, sex: str) -> None:
+    if sex == 'man':
+        person.sex = 'mannelijk'
+    if sex == 'vrouw':
+        person.sex = 'vrouwelijk'
 
 # main
 if __name__ == "__main__":
@@ -97,11 +108,7 @@ if __name__ == "__main__":
         for agent in data:
             person = get_person_data(agent)
             persons.append(person)
+    
+    write_csv(output, persons)
 
-    with open('authorities_KADOC.csv', 'w', newline='', encoding='utf-8') as csv_file:
-        writer = csv.writer(csv_file)
-        header = ['ODIS ID', 'volledige naam', 'voornaam', 'achternaam', 'alias', 'geboorteplaats', 'geboortedatum', 'sterfplaats', 
-                    'sterfdatum', 'Geslacht', 'DBNL ID', 'Wikidata ID', 'VIAF ID', 'Belelite', 'foto ID']
-        writer.writerow(header)
-        for person in persons:
-            writer.writerow(person.print_kadoc_properties())
+    
