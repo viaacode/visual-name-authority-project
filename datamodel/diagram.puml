@@ -1,0 +1,45 @@
+@startuml
+class "<b>Persoon (schema:Person)</b>" {
+    heeft identifier : URI
+    volledige naam : string
+    voornaam : string
+    achternaam : string
+    alias : string
+    geboortedatum : EDTF
+    sterfdatum : EDTF
+    heeft externe identifier : URI
+    heeft bron : URI
+
+}
+
+class "<b>Plaats (schema:Place)</b>" {
+    naam : string
+}
+
+class "<b>Beroep (schema:Occupation)</b>" {
+    naam : string
+}
+
+class "<b>Afbeelding (premis:file)</b>" {
+    heeft identifier : URI
+
+}
+
+"<b>Persoon (schema:Person)</b>" "0" -> "*" "<b>Plaats (schema:Place)</b>" : geboorteplaats
+"<b>Persoon (schema:Person)</b>" "0" -> "*" "<b>Plaats (schema:Place)</b>" : sterfplaats
+"<b>Beroep (schema:Occupation)</b>" "*" <-- "0" "<b>Persoon (schema:Person)</b>": heeft beroep
+"<b>Afbeelding (premis:file)</b>" "*" <- "0" "<b>Persoon (schema:Person)</b>": heeft afbeelding
+note on link: de omgekeerde relatie ook???
+
+
+note bottom of "<b>Persoon (schema:Person)</b>": iedere property moet een bron hebben
+note bottom of "<b>Afbeelding (premis:file)</b>"
+    welke eigenschappen moet een afbeelding hebben?
+    een contributor? 
+    en is dit dan de organisatie of de persoon?
+    technische metadata zoals in permis:file van KG?
+end note
+
+hide circle
+hide methods
+@enduml
