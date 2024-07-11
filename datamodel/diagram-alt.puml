@@ -29,13 +29,12 @@ class "<b>Afbeelding (premis:file)</b>" {
 
 class "<b>Stelling (rdf:Statement)</b>"{
     heeft bron : URI [1..1]
-    property : URI [1..1]
-    object : string | EDTF [1..1]
+    eigenschap : URI [1..1]
+    waarde : string | EDTF [1..1]
     gemaakt op: datum [1..1]
-    gewijzigd op: datum [1..1]
 }
 note bottom of "<b>Stelling (rdf:Statement)</b>"
-    Mogelijke waarden voor "property":
+    Mogelijke waarden voor "eigenschap":
     - voornaam
     - achternaam
     - alias
@@ -50,10 +49,10 @@ end note
 
  
 
-"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Persoon (schema:Person)</b>" : subject
-"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Plaats (schema:Place)</b>" : object
-"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Beroep (schema:Occupation)</b>": object
-"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Afbeelding (premis:file)</b>": object
+"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Persoon (schema:Person)</b>" : onderwerp
+"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Plaats (schema:Place)</b>" : waarde
+"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Beroep (schema:Occupation)</b>": waarde
+"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Afbeelding (premis:file)</b>": waarde
 
 hide circle
 hide methods
