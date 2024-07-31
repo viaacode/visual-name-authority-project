@@ -1,11 +1,13 @@
 #!/bin/bash
 # author: Nastasia Vanderperren (meemoo)
 
+## dit moet efficiënter kunnen via python
+
 CSV=$1
 OUTPUT_FOLDER=$2
 
 tail -n +2 ${CSV} | \
-while IFS="," read -r qid name category
+while IFS="," read -r name category qid
 do
 	if [[ -n $category ]]
 	then
