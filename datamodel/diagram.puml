@@ -19,7 +19,7 @@ class "<b>Beroep (schema:Occupation)</b>" {
     naam : string [1..1]
 }
 
-class "<b>Afbeelding (premis:file)</b>" {
+class "<b>Afbeelding (schema:ImageObject)</b>" {
     heeft identifier : URI [1..1]
     maker : string [1..1]
     licentie : URI [1..1]  
