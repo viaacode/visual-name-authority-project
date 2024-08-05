@@ -1,7 +1,7 @@
 @startuml
 class "<b>Persoon (schema:Person)</b>" {
     heeft identifier : URI [1..1]
-    heeft alternatieve identifier : URI,ID [1..*]
+    heeft alternatieve identifier : URI | ID [1..*]
     volledige naam : string [1..1]
     voornaam : string [0..*]
     achternaam : string [0..*]
@@ -28,7 +28,7 @@ class "<b>Afbeelding (schema:ImageObject)</b>" {
 "<b>Persoon (schema:Person)</b>" "0" -> "*" "<b>Plaats (schema:Place)</b>" : geboorteplaats
 "<b>Persoon (schema:Person)</b>" "0" -> "*" "<b>Plaats (schema:Place)</b>" : sterfplaats
 "<b>Beroep (schema:Occupation)</b>" "*" <-- "0" "<b>Persoon (schema:Person)</b>": heeft beroep
-"<b>Persoon (schema:Person)</b>" "0" --> "*" "<b>Afbeelding (premis:file)</b>": heeft afbeelding
+"<b>Persoon (schema:Person)</b>" "0" --> "1" "<b>Afbeelding (schema:ImageObject)</b>": heeft afbeelding
 
 class "<b>Stelling (rdf:Statement)</b>"{
     heeft bron : URI [1..1]
@@ -55,7 +55,7 @@ end note
 "<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Persoon (schema:Person)</b>" : onderwerp
 "<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Plaats (schema:Place)</b>" : waarde
 "<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Beroep (schema:Occupation)</b>": waarde
-"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Afbeelding (premis:file)</b>": waarde
+"<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Afbeelding (schema:ImageObject)</b>": waarde
 
 hide circle
 hide methods
