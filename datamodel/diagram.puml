@@ -1,6 +1,7 @@
 @startuml
 class "<b>Persoon (schema:Person)</b>" {
     heeft identifier : URI [1..1]
+    heeft alternatieve identifier : URI,ID [1..*]
     volledige naam : string [1..1]
     voornaam : string [0..*]
     achternaam : string [0..*]
@@ -8,7 +9,6 @@ class "<b>Persoon (schema:Person)</b>" {
     geboortedatum : EDTF [0..*]
     sterfdatum : EDTF [0..*]
     heeft externe identifier : URI [0..*]
-    heeft bron : URI [1..*]
 }
 
 class "<b>Plaats (schema:Place)</b>" {
@@ -21,6 +21,8 @@ class "<b>Beroep (schema:Occupation)</b>" {
 
 class "<b>Afbeelding (premis:file)</b>" {
     heeft identifier : URI [1..1]
+    maker : string [1..1]
+    licentie : URI [1..1]  
 }
 
 "<b>Persoon (schema:Person)</b>" "0" -> "*" "<b>Plaats (schema:Place)</b>" : geboorteplaats
