@@ -12,7 +12,6 @@ JSON_KEY_NAMES = {
     'BIRTH_PLACE': 'PS_GEBOORTEPLAATS',
     'DEATH_DATE': 'PS_OVERLIJDENSDATUM',
     'BIRTH_DATE': 'PS_GEBOORTEDATUM',
-    'SEX': 'PS_GESLACHT',
     'PICTURE': 'PS_ILLUSTRATIES',
     'AUTHORITIES': 'PS_BIJLAGEN'
 }
@@ -42,10 +41,7 @@ def get_person_data(json_data: dict) -> Person:
         person.deathdate = steekkaart.get(JSON_KEY_NAMES['DEATH_DATE'], '')
         person.place_of_birth = steekkaart.get(JSON_KEY_NAMES['BIRTH_PLACE'], '')
         person.place_of_death = steekkaart.get(JSON_KEY_NAMES['DEATH_PLACE'], '')
-        
-        sex = steekkaart.get(JSON_KEY_NAMES['SEX'], '')
-        set_sex(person, sex)
-        
+                
         pictures = steekkaart.get(JSON_KEY_NAMES['PICTURE'])
         if pictures:
             for picture in pictures:
@@ -91,12 +87,6 @@ def parse_authorities(person: Person, authorities: List[dict]) -> None:
                 person.wikidata = get_wikidata_id(authority_url)
             if authority_type.strip() == AUTHORITIES['DBNL']:
                 person.dbnl = get_dbnl_id(authority_url)
-
-def set_sex(person: Person, sex: str) -> None:
-    if sex == 'man':
-        person.sex = 'mannelijk'
-    if sex == 'vrouw':
-        person.sex = 'vrouwelijk'
 
 # main
 if __name__ == "__main__":

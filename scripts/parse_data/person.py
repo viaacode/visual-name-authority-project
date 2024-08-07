@@ -38,7 +38,6 @@ class Person:
         self.deathdate = ''
         self.place_of_birth = ''
         self.place_of_death = ''
-        self.sex = ''
         self.occupation = ''
         self.picture = ''
         self.dbnl = ''
@@ -56,7 +55,7 @@ class Person:
             List[str]: A list containing person properties in a specific order.
         """
         return [self.uri, self.id, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
-                self.place_of_death, self.deathdate, self.sex, self.occupation, self.dbnl, self.odis, self.wikidata, 
+                self.place_of_death, self.deathdate, self.occupation, self.dbnl, self.odis, self.wikidata, 
                 self.viaf, self.rkd, self.isni, self.picture]
 
 class Alias:
@@ -115,7 +114,7 @@ def write_csv(filename, persons: List[Person]):
         csv_writer = writer(csv_file)
         header = ['URI', 'ID', 'volledige naam', 'voornaam', 'achternaam', 'alias', 
                   'geboorteplaats', 'geboortedatum', 'sterfplaats', 
-                    'sterfdatum', 'geslacht', 'beroep', 'DBNL ID', 'ODIS ID', 'Wikidata ID', 'VIAF ID', 
+                    'sterfdatum', 'beroep', 'DBNL ID', 'ODIS ID', 'Wikidata ID', 'VIAF ID', 
                     'RKD ID', 'ISNI ID', 'foto']
         csv_writer.writerow(header)
         for person in persons:
