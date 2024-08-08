@@ -26,6 +26,7 @@ from sys import argv
 cfg = get_cfg()
 treshold = 0.7
 source_csv = argv[1]
+has_subdirectories = argv[2]
 
 
 # lines bestaat uit: index nr, filename, aantal gezichten
@@ -58,41 +59,63 @@ def write_data(directory, data):
         csv_writer.writerows(data)
     output_csv.close()
    
-
 def is_portret(predictor, photo):
     print("is {} a portret?".format(photo))
-    image = cv2.imread(photo)
-    outputs = predictor(image)
-    instances = outputs["instances"]
-    count_instances = len(instances)
+    try:
+        image = cv2.imread(photo)
+        outputs = predictor(image)
+        instances = outputs["instances"]
+        count_instances = len(instances)
 
-    directory, filename = os.path.split(str(photo))
+        directory, filename = os.path.split(str(photo))
+        
+        if  count_instances == 1:
+            print("one instance found on " + str(photo))
+            location = get_location(directory, "portrets")
+            is_portret = True
+
+        elif count_instances == 0:
+            print("zero instances found on " + str(photo))
+            location = get_location(directory, "empty")
+            is_portret = False
+
+        else: 
+            print("multiple instances found on " + str(photo))
+            location = get_location(directory, "group")
+            is_portret = False
+        
+        filepath = "{}/{}".format(location, filename)
+
+        if not os.path.exists(location):
+            os.makedirs(location)
+        os.rename(str(photo), filepath)
+        lines.append([filename, filepath, count_instances])
+
+        return is_portret
     
-    if  count_instances == 1:
-        print("one instance found on " + str(photo))
-        location = "{}/portrets/{}".format(directory, filename)
-        is_portret = True
-
-    elif count_instances == 0:
-        print("zero instances found on " + str(photo))
-        location = "{}/empty/{}".format(directory, filename)
-        is_portret = False
-
-    else: 
-        print("multiple instances found on " + str(photo))
-        location = "{}/group/{}".format(directory, filename)
-        is_portret = False
-    # replace file to folder group
-
-    os.rename(str(photo), location)
-    lines.append([filename, location, count_instances])
-
-    return is_portret
+    except Exception as error:
+        print(error)
+        return
+    
+def get_location(directory, name):
+    if has_subdirectories:
+        head, subdir = os.path.split(directory)
+        return "{}/{}/{}".format(head, name, subdir)
+    else:
+        return "{}/{}".format(directory, name)
 
 predictor = setup_detection_model(treshold)
-list_photos = pd.read_csv(source_csv).values.tolist()
+list_photos = pd.read_csv(source_csv, delimiter='\t').values.tolist()
 directory, filename = os.path.split(list_photos[0][0])
-create_dirs(directory)
+
+if has_subdirectories:
+    head, subdir = os.path.split(directory)
+    location = head
+else:
+    location = directory
+
+create_dirs(location)
+
 for photo in list_photos:
     filename = photo[0].split('/')[-1]
     print(filename)
@@ -101,4 +124,4 @@ for photo in list_photos:
     else:
         print("{} is not a portret".format(filename))
 
-write_data(directory, lines)
+write_data(location, lines)
