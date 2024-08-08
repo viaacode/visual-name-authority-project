@@ -55,3 +55,4 @@ if __name__ == '__main__':
 
 
 shutil.rmtree('apicache')
+os.remove('throttle.ctrl')
