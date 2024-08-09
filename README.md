@@ -9,7 +9,7 @@ De scripts vereisen minstens python 3.11
 1. Creëer een virtuele environment. 
 
 ```
-python3 -m pip install virtualenv
+python3 -m pip install virtualenv # als virtualenv niet geïnstalleerd is
 mkvirtualenv visual_name_authority
 ```
 
@@ -18,3 +18,12 @@ mkvirtualenv visual_name_authority
 ```
 cat requirements.txt | xargs -n 1 -L 1 pip install
 ```
+
+## Gebruik 
+
+Voordat je de scripts kan gebruiken, moet je je virtuele environment activeren:
+
+```
+workon visual_name_authority
+```
+
