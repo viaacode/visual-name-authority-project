@@ -43,7 +43,7 @@ note bottom of "<b>Stelling (rdf:Statement)</b>"
     - alias
     - geboortedatum
     - sterfdatum
-    - heeft externe identifier
+    - heeft alternatieve identifier
     - geboorteplaats
     - sterfplaats
     - heeft beroep
