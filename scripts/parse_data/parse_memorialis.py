@@ -4,6 +4,9 @@ import os
 from person import Person, beautify_string, get_viaf_id, write_csv
 from typing import List
 from dotenv import load_dotenv
+from sys import argv
+
+output_file = argv[1]
 
 load_dotenv()
 
@@ -12,7 +15,6 @@ JSON_KEY_NAMES = {
     'NAME': 'title_t',
     'DEATH': 'death_date_display',
     'BIRTH': 'birth_date_display',
-    'SEX': 'gender_facet',
     'OCCUPATION': 'mandate_facet',
     'PICTURE_1': 'thumbnail_display',
     'PICTURE_2': 'thumbnail_link_url_display',
@@ -37,9 +39,6 @@ def get_person_data(json_data: str) -> Person:
 
     person.uri = "https://www.ugentmemorialis.be/catalog/{}".format(person.id)
     get_names(person, document[JSON_KEY_NAMES['NAME']])
-
-    if JSON_KEY_NAMES['SEX'] in document:
-        person.sex = document.get(JSON_KEY_NAMES['SEX'])[0]
 
     parse_pictures(person, document)
     
@@ -153,6 +152,6 @@ if __name__ == "__main__":
                 data = json.load(json_file)
                 persons.append(get_person_data(data))
 
-    write_csv("authorities_ugent_memorialis.csv", persons)
+    write_csv(output_file, persons)
 
 
