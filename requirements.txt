@@ -1,0 +1,10 @@
+pandas
+python-dotenv
+pywikibot
+Requests
+opencv-python
+torch
+torchvision
+torchaudio
+wikiget
+detectron2 @ git+https://github.com/facebookresearch/detectron2.git
