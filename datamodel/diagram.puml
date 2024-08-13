@@ -1,14 +1,14 @@
 @startuml
 class "<b>Persoon (schema:Person)</b>" {
-    heeft identifier : URI [1..1]
-    heeft alternatieve identifier : URI | ID [1..*]
+    identifier : URI [1..1]
+    alternatieve identifier : URI | ID [1..*]
     volledige naam : string [1..1]
     voornaam : string [0..*]
     achternaam : string [0..*]
     alias : string [0..*]
     geboortedatum : EDTF [0..*]
     sterfdatum : EDTF [0..*]
-    heeft externe identifier : URI [0..*]
+    externe identifier : URI [0..*]
 }
 
 class "<b>Plaats (schema:Place)</b>" {
@@ -20,7 +20,7 @@ class "<b>Beroep (schema:Occupation)</b>" {
 }
 
 class "<b>Afbeelding (schema:ImageObject)</b>" {
-    heeft identifier : URI [1..1]
+    identifier : URI [1..1]
     maker : string [1..1]
     licentie : URI [1..1]  
 }
@@ -31,19 +31,19 @@ class "<b>Afbeelding (schema:ImageObject)</b>" {
 "<b>Persoon (schema:Person)</b>" "0" --> "1" "<b>Afbeelding (schema:ImageObject)</b>": heeft afbeelding
 
 class "<b>Stelling (rdf:Statement)</b>"{
-    heeft bron : URI [1..1]
+    bron : URI [1..1]
     eigenschap : URI [1..1]
     waarde : string | EDTF [1..1]
     gemaakt op: datum [1..1]
 }
 note bottom of "<b>Stelling (rdf:Statement)</b>"
     Mogelijke waarden voor "eigenschap":
+    - alternatieve identifier
     - voornaam
     - achternaam
     - alias
     - geboortedatum
     - sterfdatum
-    - heeft alternatieve identifier
     - geboorteplaats
     - sterfplaats
     - heeft beroep
