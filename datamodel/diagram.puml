@@ -30,8 +30,11 @@ class "<b>Afbeelding (schema:ImageObject)</b>" {
 "<b>Beroep (schema:Occupation)</b>" "*" <-- "0" "<b>Persoon (schema:Person)</b>": heeft beroep
 "<b>Persoon (schema:Person)</b>" "0" --> "1" "<b>Afbeelding (schema:ImageObject)</b>": heeft afbeelding
 
+class "<b>Organisatie (org:Organization)</b>" {
+    naam : langString [1..1]
+}
+
 class "<b>Stelling (rdf:Statement)</b>"{
-    bron : URI [1..1]
     eigenschap : URI [1..1]
     waarde : string | EDTF [1..1]
     gemaakt op: datum [1..1]
@@ -49,13 +52,13 @@ note bottom of "<b>Stelling (rdf:Statement)</b>"
     - heeft beroep
     - heeft afbeelding
 end note
-
  
 
 "<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Persoon (schema:Person)</b>" : onderwerp
 "<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Plaats (schema:Place)</b>" : waarde
 "<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Beroep (schema:Occupation)</b>": waarde
 "<b>Stelling (rdf:Statement)</b>" "1" -> "1" "<b>Afbeelding (schema:ImageObject)</b>": waarde
+"<b>Stelling (rdf:Statement)</b>" "1" -u-> "1" "<b>Organisatie (org:Organization)</b>": bron
 
 hide circle
 hide methods
