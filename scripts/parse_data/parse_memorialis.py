@@ -1,10 +1,15 @@
 import csv
 import json
 import os
-from person import Person, beautify_string, get_viaf_id, write_csv
 from typing import List
 from dotenv import load_dotenv
-from sys import argv
+from sys import path, argv
+from pathlib import Path
+
+# import local packages
+path_root = Path(__file__).parents[2]
+path.append(str(path_root))
+from scripts.person import Person, beautify_string, get_viaf_id, write_csv
 
 output_file = argv[1]
 

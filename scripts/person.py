@@ -27,7 +27,8 @@ class Person:
         isni (str): Identifier for the person from ISNI
     """
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:        
+
         self.uri = ''
         self.id = ''
         self.fullname = ''
@@ -70,6 +71,13 @@ class Alias:
         self.first = ''
         self.last = ''
 
+class Event():
+    def __init__(self, place = '', date = '') -> None:
+        self.place = place
+        self.date = date
+
+
+
 def get_wikidata_id(url: str) -> str:
     """
         Extracts the wikidata QID from the Wikidata URI.
@@ -108,6 +116,16 @@ def beautify_string(value: str) -> str:
     if value.endswith(','):
         value = value[:-1]
     return value
+
+def split_names(value: str, person: Person) -> str:
+    print(value)
+    names = value.split(',')
+    print(len(names))
+    if len(names) > 1:
+        person.firstname = names[1].strip()
+        person.lastname = names[0].strip()
+    else:
+        person.fullname = value
 
 def write_csv(filename, persons: List[Person]):
      with open(filename, 'w', newline='', encoding='utf-8') as csv_file:

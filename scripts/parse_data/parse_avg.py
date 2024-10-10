@@ -1,8 +1,13 @@
 import xml.etree.ElementTree as ET
-from person import Person, Alias, beautify_string, write_csv
 import locale
 from datetime import datetime
-from sys import argv
+from sys import path, argv
+from pathlib import Path
+
+# import local packages
+path_root = Path(__file__).parents[2]
+path.append(str(path_root))
+from scripts.person import Person, beautify_string, write_csv
 
 file = argv[1]
 output = argv[2]

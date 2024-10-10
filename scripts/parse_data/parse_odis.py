@@ -1,7 +1,12 @@
 import json
-from person import Person, beautify_string, get_dbnl_id, get_wikidata_id, write_csv
 from typing import List
-from sys import argv
+from sys import path, argv
+from pathlib import Path
+
+# import local packages
+path_root = Path(__file__).parents[2]
+path.append(str(path_root))
+from scripts.person import Person, beautify_string, get_dbnl_id, get_wikidata_id, write_csv
 
 JSON_KEY_NAMES = {
     'URI': 'URL',
