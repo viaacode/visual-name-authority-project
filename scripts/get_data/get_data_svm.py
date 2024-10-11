@@ -50,7 +50,7 @@ def split_date_place(text: str) -> Event:
     else: 
         return Event()
     
-def donwload_images(tags: ResultSet, directory: str, person: Person, session: Session):
+def download_images(tags: ResultSet, directory: str, person: Person, session: Session):
     for tag in tags:
         url = tag['href']
         filename = url.split('/')[-1]
@@ -70,7 +70,7 @@ def get_images(html: BeautifulSoup, person: Person, session: Session):
         folder = "{}/{}/{}".format(root_folder, photo_folder, id)
         if not os.path.exists(folder):
             os.makedirs(folder)
-        donwload_images(tags, folder, person, session)
+        download_images(tags, folder, person, session)
         person.picture = beautify_string(person.picture)
     else:
         print("[INFO] {} {} has no images".format(person.firstname, person.lastname))
