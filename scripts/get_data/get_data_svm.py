@@ -35,13 +35,14 @@ def get_life_events(text: str, person: Person):
 
 def split_date_place(text: str) -> Event:
     data = text.split(',')
-    if len(data) > 1:
+    if len(data) > 0:
         place = data[0][2:]
-        date = datetime.strptime(data[1].strip(), '%d/%m/%Y').strftime('%Y-%m-%d')
+        if len(data) > 1:
+            date = datetime.strptime(data[1].strip(), '%d/%m/%Y').strftime('%Y-%m-%d')
+        else:
+            print("[ERROR] No date or place")
+            date = "FOUT!"
         return Event(place, date)
-    if len(data) == 1:
-        print("[ERROR] Maybe no date or place")
-        exit()
     else: 
         return Event()
     
@@ -72,8 +73,10 @@ def get_images(html: BeautifulSoup, person: Person, session: Session):
 def create_svm_person(html: BeautifulSoup, person: Person, session: Session):
     names = html.title.string.split('|')[0].strip()
     split_names(names, person)
-    date = html.find("div", class_="text-xl").string.replace('\n', '').replace('\t', '').strip()
-    get_life_events(date, person)
+    date = html.find("div", class_="text-xl")
+    if date:
+        date = date.string.replace('\n', '').replace('\t', '').strip()
+        get_life_events(date, person)
     get_images(html, person, session)
 
 
@@ -81,13 +84,14 @@ def get_data_svm():
     with open(textfile, 'r') as file:
         with Session() as session:
             for url in file:
-                print("[INFO] retrieving data from {}".format(url))
+                print("[INFO] retrieving data from {}".format(url.strip()))
                 response = session.get(url.strip())
-                soup = BeautifulSoup(response.content, "html.parser")
-                person = Person()
-                person.uri = url.strip()
-                create_svm_person(soup, person, session)
-                persons.append(person)
+                if response.ok:
+                    soup = BeautifulSoup(response.content, "html.parser")
+                    person = Person()
+                    person.uri = url.strip()
+                    create_svm_person(soup, person, session)
+                    persons.append(person)
                 sleep(2)
 
 
