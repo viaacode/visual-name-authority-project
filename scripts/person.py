@@ -1,5 +1,6 @@
 from typing import List
 from csv import writer
+import sys
 
 class Person:
     """
@@ -118,9 +119,10 @@ def beautify_string(value: str) -> str:
     return value
 
 def split_names(value: str, person: Person) -> str:
-    print(value)
     names = value.split(',')
-    print(len(names))
+    if len(names) > 2:
+        print("[ERROR] More than two names!")
+        sys.exit()
     if len(names) > 1:
         person.firstname = names[1].strip()
         person.lastname = names[0].strip()
