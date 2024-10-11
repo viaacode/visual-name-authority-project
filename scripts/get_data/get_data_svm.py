@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 from requests import Session
 from sys import path, argv
+from time import sleep
 
 # import local packages
 path_root = Path(__file__).parents[2]
@@ -23,13 +24,14 @@ photo_folder = 'foto'
 def get_life_events(text: str, person: Person): 
     life_events = text.split(' — ')
     life_events = [event.strip() for event in life_events]
-    birth_event = split_date_place(life_events[0])
-    death_event = split_date_place(life_events[1])
-    person.birthdate = birth_event.date
-    person.place_of_birth = birth_event.place
-    person.deathdate = death_event.date
-    person.place_of_death = death_event.place
-
+    if len(life_events) > 0:
+        birth_event = split_date_place(life_events[0])
+        person.birthdate = birth_event.date
+        person.place_of_birth = birth_event.place
+    if len(life_events) > 1:
+        death_event = split_date_place(life_events[1])
+        person.deathdate = death_event.date
+        person.place_of_death = death_event.place
 
 def split_date_place(text: str) -> Event:
     data = text.split(',')
@@ -37,6 +39,8 @@ def split_date_place(text: str) -> Event:
         place = data[0][2:]
         date = datetime.strptime(data[1].strip(), '%d/%m/%Y').strftime('%Y-%m-%d')
         return Event(place, date)
+    if len(data) == 1:
+        print("[ERROR] Maybe no date or place")
     else: 
         return Event()
     
@@ -44,9 +48,12 @@ def donwload_images(tags: ResultSet, directory: str, person: Person, session: Se
     for tag in tags:
         url = tag['href']
         filename = url.split('/')[-1]
-        image = session.get(url).content
-        with open("{}/{}".format(directory, filename), 'wb') as handler:
-            handler.write(image)
+        output_file = "{}/{}".format(directory, filename)
+        if not os.path.exists(output_file):
+            print("[INFO] downloading image {}".format(url))
+            image = session.get(url).content
+            with open(output_file, 'wb') as handler:
+                handler.write(image)
         person.picture += filename + ','
 
     
@@ -55,7 +62,8 @@ def get_images(html: BeautifulSoup, person: Person, session: Session):
     if tags:
         id = person.uri.split('/')[-1]
         folder = "{}/{}/{}".format(root_folder, photo_folder, id)
-        os.makedirs(folder)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
         donwload_images(tags, folder, person, session)
         person.picture = beautify_string(person.picture)
 
@@ -79,6 +87,7 @@ def get_data_svm():
                 person.uri = url.strip()
                 create_svm_person(soup, person, session)
                 persons.append(person)
+                sleep(2)
 
 
 if __name__ == '__main__':
