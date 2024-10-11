@@ -1,17 +1,21 @@
+"""Module for parsing the data of UGent Memorialis and convert it to the VNA CSV-format"""
+
 import csv
 import json
 import os
 from typing import List
-from dotenv import load_dotenv
 from sys import path, argv
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # import local packages
 path_root = Path(__file__).parents[2]
 path.append(str(path_root))
 from scripts.person import Person, beautify_string, get_viaf_id, write_csv
 
-output_file = argv[1]
+OUTPUT_FILE = argv[1]
+qids = {}
 
 load_dotenv()
 
@@ -42,19 +46,20 @@ def get_person_data(json_data: str) -> Person:
 
     person.id = document.get(JSON_KEY_NAMES['ID'], '')
 
-    person.uri = "https://www.ugentmemorialis.be/catalog/{}".format(person.id)
+    person.uri = f"https://www.ugentmemorialis.be/catalog/{person.id}"
     get_names(person, document[JSON_KEY_NAMES['NAME']])
 
     parse_pictures(person, document)
-    
     if JSON_KEY_NAMES['OCCUPATION'] in document:
         parse_occupation(person, document[JSON_KEY_NAMES['OCCUPATION']])
 
     if JSON_KEY_NAMES['BIRTH'] in document:
-        (person.birthdate, person.place_of_birth) = parse_date_and_place(document[JSON_KEY_NAMES['BIRTH']][0])
+        (person.birthdate, person.place_of_birth) = parse_date_and_place(
+            document[JSON_KEY_NAMES['BIRTH']][0])
 
     if JSON_KEY_NAMES['DEATH'] in document:
-        (person.deathdate, person.place_of_death) = parse_date_and_place(document[JSON_KEY_NAMES['DEATH']][0])
+        (person.deathdate, person.place_of_death) = parse_date_and_place(
+            document[JSON_KEY_NAMES['DEATH']][0])
 
     if JSON_KEY_NAMES['AUTHORITIES'] in document:
         authorities = document[JSON_KEY_NAMES['AUTHORITIES']]
@@ -62,8 +67,8 @@ def get_person_data(json_data: str) -> Person:
             parts = authority.split(']')
             if AUTHORITIES['VIAF'] in parts[0]:
                 person.viaf = get_viaf_id(parts[1])
-    
-    find_wikidata_qid(person)    
+
+    find_wikidata_qid(person)
     return person
 
 def find_wikidata_qid(person: Person) -> None:
@@ -87,7 +92,7 @@ def parse_date_and_place(date_and_place: str) -> tuple[str, str]:
         else:
             place = date_and_place
     return (date, place)
-            
+
 
 def parse_place(parts: List[str]) -> str:
     place = ''
@@ -119,7 +124,7 @@ def get_names(person: Person, names: List[str]) -> None:
     first_and_last = names[0].split(',')
     person.firstname = first_and_last[1].strip()
     person.lastname = first_and_last[0].strip()
-    person.fullname = "{} {}".format(person.firstname, person.lastname)
+    person.fullname = f"{person.firstname} {person.lastname}"
 
     length = len(names)
     if length > 1:
@@ -127,9 +132,9 @@ def get_names(person: Person, names: List[str]) -> None:
             name = names[index]
             if ',' in name:
                 first_and_last = name.split(',')
-                person.alias += "{} {}, ".format(first_and_last[1].strip(), first_and_last[0])
+                person.alias += f"{first_and_last[1].strip()} {first_and_last[0]}, "
             else:
-                person.alias += "{}, ".format(name)
+                person.alias += f"{name}, "
         person.alias = beautify_string(person.alias)
 
 
@@ -142,21 +147,18 @@ def parse_occupation(person: Person, occupations: List[str]) -> None:
 
 if __name__ == "__main__":
     persons = []
-    qids = {}
 
-    with open(QID_FILE, 'r') as input_file:
+    with open(QID_FILE, 'r', encoding='utf-8') as input_file:
         reader = csv.DictReader(input_file)
         for row in reader:
             qids[row['id']] = row['QID']
-    
+
     for filename in os.listdir(FOLDER):
         file_path = os.path.join(FOLDER, filename)
         if file_path.endswith('.json'):
             print(file_path)
-            with open(file_path, 'r') as json_file:
+            with open(file_path, 'r', encoding='utf-8') as json_file:
                 data = json.load(json_file)
                 persons.append(get_person_data(data))
 
-    write_csv(output_file, persons)
-
-
+    write_csv(OUTPUT_FILE, persons)

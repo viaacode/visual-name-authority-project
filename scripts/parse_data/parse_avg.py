@@ -1,3 +1,7 @@
+"""Module for parsing the XML-file of Archief voor Vrouwengeschiedenis (AVG) and 
+converting the data to the VNA CSV-format"""
+
+
 import xml.etree.ElementTree as ET
 import locale
 from datetime import datetime
@@ -9,8 +13,8 @@ path_root = Path(__file__).parents[2]
 path.append(str(path_root))
 from scripts.person import Person, beautify_string, write_csv
 
-file = argv[1]
-output = argv[2]
+FILE = argv[1]
+OUTPUT = argv[2]
 
 # constants
 XML_TAG_NAMES = {
@@ -22,6 +26,7 @@ XML_TAG_NAMES = {
     'PICTURE_ID': 'id_carhif'
     }
 
+persons = []
 
 def split_date(person: Person, date: str):
     dates = date.split('-')
@@ -51,22 +56,22 @@ def parse_pictures(person: Person, elements: list[ET.Element]):
         piture_id = piture_id.replace('/', '')
         person.picture += piture_id + ','
     person.picture = beautify_string(person.picture)
-    
 
-def parse_xml(file):
-    tree = ET.parse(file)
+
+def parse_xml(input_file):
+    tree = ET.parse(input_file)
     root = tree.getroot()
     xml_persons = root.findall(XML_TAG_NAMES['PERSON'])
 
     for xml_person in xml_persons:
         person = Person()
-    
+
         #fullname, firstname, lastname
         names = split_name(xml_person.find(XML_TAG_NAMES['FULLNAME']).text)
         person.firstname = names[1].strip()
         person.lastname = names[0].strip()
         person.fullname = '{} {}'.format(person.firstname, person.lastname)
-       
+
         #alias
         alias = xml_person.find(XML_TAG_NAMES['ALIAS'])
         try:
@@ -78,8 +83,7 @@ def parse_xml(file):
         except Exception as error:
             print("{} has no alias".format(person.fullname))
             print(error)
-            
-        
+
         #birth & death date
         split_date(person, xml_person.find(XML_TAG_NAMES['DATE']).text)
 
@@ -91,11 +95,8 @@ def parse_xml(file):
 
 
 if __name__ == '__main__':
-
-    persons = []
-
-    parse_xml(file)
-    write_csv(output, persons)
+    parse_xml(FILE)
+    write_csv(OUTPUT, persons)
 
 
 

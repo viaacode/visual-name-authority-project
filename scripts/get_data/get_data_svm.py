@@ -1,25 +1,29 @@
-from bs4 import BeautifulSoup, ResultSet
+"""Module for crawling data of https://www.svm.be/componisten and converting it to 
+the VNA CSV-format"""
+
 from datetime import datetime
 from pathlib import Path
 import os
-from requests import Session
-from sys import path, argv, exit
+from sys import path, argv
 from time import sleep
+from bs4 import BeautifulSoup, ResultSet
+from requests import Session
+
 
 # import local packages
 path_root = Path(__file__).parents[2]
 path.append(str(path_root))
 from scripts.person import Person, Event, write_csv, beautify_string
 
-# lees de file uit
-# haal de url op met requests
+# constants
+TEXTFILE = argv[1]
+ROOT_FOLDER = str(Path(os.path.abspath(TEXTFILE)).parent.absolute())
+OUTPUT = argv[2]
+PHOTO_FOLDER = 'foto'
+ERROR_MESSAGE = 'FOUT!'
 
-textfile = argv[1]
-root_folder = str(Path(os.path.abspath(textfile)).parent.absolute())
-output = argv[2]
+#variables
 persons = []
-photo_folder = 'foto'
-error_message = 'FOUT!'
 
 
 def get_life_events(text: str, person: Person): 
@@ -45,11 +49,12 @@ def split_date_place(text: str) -> Event:
                     place += ',' + item
         else:
             print("[ERROR] No date or place")
-            date = error_message
+            date = ERROR_MESSAGE
         return Event(place, date)
     else: 
         return Event()
-    
+
+
 def download_images(tags: ResultSet, directory: str, person: Person, session: Session):
     for tag in tags:
         url = tag['href']
@@ -62,12 +67,12 @@ def download_images(tags: ResultSet, directory: str, person: Person, session: Se
                 handler.write(image)
         person.picture += filename + ','
 
-    
+
 def get_images(html: BeautifulSoup, person: Person, session: Session):
     tags = html.find_all("a", class_="js-modal-image")
     if tags:
         id = person.uri.split('/')[-1]
-        folder = "{}/{}/{}".format(root_folder, photo_folder, id)
+        folder = "{}/{}/{}".format(ROOT_FOLDER, PHOTO_FOLDER, id)
         if not os.path.exists(folder):
             os.makedirs(folder)
         download_images(tags, folder, person, session)
@@ -81,7 +86,7 @@ def split_names(value: str, person: Person) -> str:
     if len(names) > 1:
         person.firstname = names[1].strip()
         person.lastname = names[0].strip()
-        
+
         if len(names) > 2:
             for name in names[2:]:
                 person.firstname += name      
@@ -99,7 +104,7 @@ def create_svm_person(html: BeautifulSoup, person: Person, session: Session):
 
 
 def get_data_svm():
-    with open(textfile, 'r') as file:
+    with open(TEXTFILE, 'r', encoding='utf-8') as file:
         with Session() as session:
             for url in file:
                 print("[INFO] retrieving data from {}".format(url.strip()))
@@ -115,4 +120,4 @@ def get_data_svm():
 
 if __name__ == '__main__':
     get_data_svm()
-    write_csv(output, persons)
+    write_csv(OUTPUT, persons)

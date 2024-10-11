@@ -1,3 +1,4 @@
+"""Module for reading and writing JSON"""
 import json
 from typing import List
 from sys import path, argv
@@ -27,8 +28,8 @@ AUTHORITIES = {
     'DBNL': 'Digitale Bibliotheek voor de Nederlandse Letteren'
 }
 
-file = argv[1]
-output = argv[2]
+FILE = argv[1]
+OUTPUT = argv[2]
 
 def get_person_data(json_data: dict) -> Person:
     person = Person()
@@ -98,12 +99,12 @@ if __name__ == "__main__":
 
     persons = []
 
-    with open(file, "r", encoding='utf-8') as json_file:
+    with open(FILE, "r", encoding='utf-8') as json_file:
         data = json.load(json_file)
         for agent in data:
             person = get_person_data(agent)
             persons.append(person)
     
-    write_csv(output, persons)
+    write_csv(OUTPUT, persons)
 
     

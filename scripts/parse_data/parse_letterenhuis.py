@@ -1,3 +1,5 @@
+"""Module for parsing the XML-files of Letterenhuis and convert the data to the VNA CSV-format"""
+
 import xml.etree.ElementTree as ET
 import os
 import csv
@@ -14,6 +16,9 @@ XML_TAG_NAMES = {
     'DEATH_PLACE': 'place_of_death',
     'BIRTH_PLACE': 'place_of_birth'
 }
+
+# variables
+persons = []
 
 # classes
 class Person:
@@ -110,7 +115,7 @@ def set_occupation(person, root) -> None:
         person.occupation = person.occupation[:-1]
 
     person.occupation = person.occupation.replace("\\r\\n", ",")
-    
+
 def find_id(value: str) -> str:
     if '?' in value:
         return value.split('=')[-1]
@@ -159,10 +164,9 @@ def parse_xml(file) -> None:
         set_external_identifiers(person, root)
 
         persons.append(person)
-  
-# main      
+
+# main
 if __name__ == "__main__":
-    persons = []
 
     for filename in os.listdir(FOLDER):
         print(filename)
@@ -172,8 +176,9 @@ if __name__ == "__main__":
 
     with open('authorities_letterenhuis.csv', 'w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
-        header = ['URI', 'voornaam', 'achternaam', 'alias', 'geboorteplaats', 'geboortedatum', 'sterfplaats', 
-                    'sterfdatum', 'beroep', 'dbnl author ID', 'ODIS ID', 'Wikidata ID', 'VIAF ID', 'RKD ID', 'foto URL']
+        header = ['URI', 'voornaam', 'achternaam', 'alias', 'geboorteplaats', 'geboortedatum',
+                  'sterfplaats', 'sterfdatum', 'beroep', 'dbnl author ID', 'ODIS ID', 'Wikidata ID', 
+                  'VIAF ID', 'RKD ID', 'foto URL']
         writer.writerow(header)
         for person in persons:
             writer.writerow(person.print_properties())
