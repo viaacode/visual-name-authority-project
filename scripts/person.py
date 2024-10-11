@@ -118,17 +118,6 @@ def beautify_string(value: str) -> str:
         value = value[:-1]
     return value
 
-def split_names(value: str, person: Person) -> str:
-    names = value.split(',')
-    if len(names) > 2:
-        print("[ERROR] More than two names!")
-        sys.exit()
-    if len(names) > 1:
-        person.firstname = names[1].strip()
-        person.lastname = names[0].strip()
-    else:
-        person.fullname = value
-
 def write_csv(filename, persons: List[Person]):
      with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
         csv_writer = writer(csv_file)

@@ -9,7 +9,7 @@ from time import sleep
 # import local packages
 path_root = Path(__file__).parents[2]
 path.append(str(path_root))
-from scripts.person import Person, Event, split_names, write_csv, beautify_string
+from scripts.person import Person, Event, write_csv, beautify_string
 
 # lees de file uit
 # haal de url op met requests
@@ -75,6 +75,18 @@ def get_images(html: BeautifulSoup, person: Person, session: Session):
     else:
         print("[INFO] {} {} has no images".format(person.firstname, person.lastname))
 
+
+def split_names(value: str, person: Person) -> str:
+    names = value.split(',')
+    if len(names) > 1:
+        person.firstname = names[1].strip()
+        person.lastname = names[0].strip()
+        
+        if len(names) > 2:
+            for name in names[2:]:
+                person.firstname += name      
+    else:
+        person.fullname = value
 
 def create_svm_person(html: BeautifulSoup, person: Person, session: Session):
     names = html.title.string.split('|')[0].strip()
