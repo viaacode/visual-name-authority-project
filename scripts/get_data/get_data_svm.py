@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 import os
 from requests import Session
-from sys import path, argv
+from sys import path, argv, exit
 from time import sleep
 
 # import local packages
@@ -28,7 +28,7 @@ def get_life_events(text: str, person: Person):
         birth_event = split_date_place(life_events[0])
         person.birthdate = birth_event.date
         person.place_of_birth = birth_event.place
-    if len(life_events) > 1:
+    if len(life_events) > 1 and len(life_events[1]) > 2:
         death_event = split_date_place(life_events[1])
         person.deathdate = death_event.date
         person.place_of_death = death_event.place
@@ -41,6 +41,7 @@ def split_date_place(text: str) -> Event:
         return Event(place, date)
     if len(data) == 1:
         print("[ERROR] Maybe no date or place")
+        exit()
     else: 
         return Event()
     
