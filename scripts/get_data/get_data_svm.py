@@ -25,7 +25,8 @@ ERROR_MESSAGE = 'FOUT!'
 #variables
 persons = []
 
-
+"""
+"""
 def get_life_events(text: str, person: Person): 
     life_events = text.split(' — ')
     life_events = [event.strip() for event in life_events]

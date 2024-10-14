@@ -1,7 +1,6 @@
 """Module for parsing the XML-file of Archief voor Vrouwengeschiedenis (AVG) and 
 converting the data to the VNA CSV-format"""
 
-
 import xml.etree.ElementTree as ET
 import locale
 from datetime import datetime
@@ -73,10 +72,10 @@ def parse_xml(input_file):
         try:
             aliases = split_name(alias.text)
             if len(aliases) > 1:
-                person.alias = "{} {}".format(aliases[1].strip(), aliases[0].strip())
+                person.name.alias = f"{aliases[1].strip()} {aliases[0].strip()}"
             else:
-                person.alias = aliases[0]
-        except Exception as error:
+                person.name.alias = aliases[0]
+        except(TypeError, ValueError, IndexError) as error:
             print(f"{person.name.full} has no alias")
             print(error)
 

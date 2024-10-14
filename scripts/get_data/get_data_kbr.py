@@ -7,10 +7,11 @@ DOMAIN = 'https://opac.kbr.be/oaiserver.ashx'
 OAI_VERB = 'ListRecords'
 FOLDER = 'path/to/my_folder' # change this
 
+session = requests.Session()
 for page in range(0,492100,100):
     token = f"!!AUTHOR!{page}!492043!oai_dc"
     url = f"{DOMAIN}?verb={OAI_VERB}&resumptionToken={token}"
-    response = requests.get(url, timeout=60)
+    response = session.get(url, timeout=60)
     response.encoding = response.apparent_encoding
     xml_data = xml.dom.minidom.parseString(response.text)
 

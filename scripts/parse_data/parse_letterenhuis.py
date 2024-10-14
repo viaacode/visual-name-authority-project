@@ -2,7 +2,6 @@
 
 import xml.etree.ElementTree as ET
 import os
-import csv
 from pathlib import Path
 from sys import path
 from dotenv import load_dotenv
@@ -10,7 +9,7 @@ from dotenv import load_dotenv
 # import local packages
 path_root = Path(__file__).parents[2]
 path.append(str(path_root))
-from scripts.person import Person, Alias, beautify_string, write_csv
+from scripts.person import Person, Alias, write_csv
 
 load_dotenv()
 
@@ -28,7 +27,15 @@ XML_TAG_NAMES = {
 persons = []
 
 # methods
-def set_names(person: Person, root) -> None:
+def set_names(person: Person, root: ET.Element) -> None:
+    """
+    Parses a person's name data in the Letterenhuis XML and stores the 
+    data in a person object
+
+        Parameters:
+        person (Person): A person object
+        root (Element): The root element of an XML file
+    """
     for name in root.findall('Names'):
         if name.find('Qualifier').text is None:
             person.name.first = name.find(XML_TAG_NAMES['FIRST_NAME']).text
@@ -53,7 +60,15 @@ def set_names(person: Person, root) -> None:
     if person.name.alias.endswith(','):
         person.name.alias = person.name.alias[:-1]
         
-def set_dates(person: Person, root) -> None:
+def set_dates(person: Person, root: ET.Element) -> None:
+    """
+    Parses a person's date of existence data in the Letterenhuis XML and stores the 
+    data in a person object
+
+        Parameters:
+        person (Person): A person object
+        root (Element): The root element of an XML file
+    """
     dates = root.find('DatesOfExistence')
     if dates:
         structured_dates = dates.find('StructuredDateRange')
@@ -73,7 +88,15 @@ def set_dates(person: Person, root) -> None:
                 case 'end':
                     person.death.date = date
 
-def set_user_places(person: Person, root) -> None:
+def set_user_places(person: Person, root: ET.Element) -> None:
+    """
+    Parses a person's place data in the Letterenhuis XML and stores the 
+    data in a person object
+
+        Parameters:
+        person (Person): A person object
+        root (Element): The root element of an XML file
+    """
     places = root.findall('AgentPlaces')
     for place in places:
         place_type = place.find('PlaceRole').text
@@ -82,7 +105,15 @@ def set_user_places(person: Person, root) -> None:
         if place_type == XML_TAG_NAMES['BIRTH_PLACE']:
             person.birth.place = place.find('Subjects').find('Ref').text
 
-def set_occupation(person: Person, root) -> None:
+def set_occupation(person: Person, root: ET.Element) -> None:
+    """
+    Parses a person's occupation data in the Letterenhuis XML and stores the 
+    data in a person object
+
+        Parameters:
+        person (Person): A person object
+        root (Element): The root element of an XML file
+    """
     occupations = root.findall('AgentOccupations')
     if occupations:
         for occupation in occupations:
@@ -95,11 +126,20 @@ def set_occupation(person: Person, root) -> None:
     person.occupation = person.occupation.replace("\\r\\n", ",")
 
 def find_id(value: str) -> str:
+    """Returns the extenal identifier in a string"""
     if '?' in value:
         return value.split('=')[-1]
     return value.split('/')[-1]
 
-def set_external_identifiers(person: Person, root) -> None:
+def set_external_identifiers(person: Person, root: ET.Element) -> None:
+    """
+    Parses a person's external identifiers data in the Letterenhuis XML and stores the 
+    data in a person object
+
+        Parameters:
+        person (Person): A person object
+        root (Element): The root element of an XML file
+    """
     docs = root.findall('ExternalDocuments')
     for doc in docs:
         doc_type = doc.find('Title').text
@@ -120,7 +160,16 @@ def set_external_identifiers(person: Person, root) -> None:
                 case 'rkd':
                     person.identifier.rkd = identifier
 
-def parse_xml(file) -> None:
+def parse_xml(file: str) -> Person:
+    """
+    Return all data of a person found in a Letterenhuis XML file.
+
+        Parameters:
+            file (str): the filepath of the XML file
+
+        Returns:
+            person (Person): a person object
+    """
     tree = ET.parse(file)
     root = tree.getroot()
     jsonmodel = root.find('JsonmodelType').text
@@ -140,8 +189,6 @@ def parse_xml(file) -> None:
         # afbeeldingen en externe identifiers
         set_external_identifiers(person, root)
 
-        persons.append(person)
-
 # main
 if __name__ == "__main__":
 
@@ -149,6 +196,6 @@ if __name__ == "__main__":
         print(filename)
         file_path = os.path.join(FOLDER, filename)
         if file_path.endswith('.xml'):
-            parse_xml(file_path)
+            persons.append(parse_xml(file_path))
 
     write_csv('authorities_letterenhuis.csv', persons)
