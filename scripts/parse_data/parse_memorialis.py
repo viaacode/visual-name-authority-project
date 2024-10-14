@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 # import local packages
 path_root = Path(__file__).parents[2]
 path.append(str(path_root))
-from scripts.person import Person, beautify_string, get_viaf_id, write_csv
+from scripts.person import Person, Event, beautify_string, get_viaf_id, write_csv
 
 OUTPUT_FILE = argv[1]
 qids = {}
@@ -46,7 +46,7 @@ def get_person_data(json_data: str) -> Person:
 
     person.id = document.get(JSON_KEY_NAMES['ID'], '')
 
-    person.uri = f"https://www.ugentmemorialis.be/catalog/{person.id}"
+    person.identifier.uri = f"https://www.ugentmemorialis.be/catalog/{person.id}"
     get_names(person, document[JSON_KEY_NAMES['NAME']])
 
     parse_pictures(person, document)
@@ -54,11 +54,11 @@ def get_person_data(json_data: str) -> Person:
         parse_occupation(person, document[JSON_KEY_NAMES['OCCUPATION']])
 
     if JSON_KEY_NAMES['BIRTH'] in document:
-        (person.birthdate, person.place_of_birth) = parse_date_and_place(
+        person.birth = parse_date_and_place(
             document[JSON_KEY_NAMES['BIRTH']][0])
 
     if JSON_KEY_NAMES['DEATH'] in document:
-        (person.deathdate, person.place_of_death) = parse_date_and_place(
+        person.death = parse_date_and_place(
             document[JSON_KEY_NAMES['DEATH']][0])
 
     if JSON_KEY_NAMES['AUTHORITIES'] in document:
@@ -66,7 +66,7 @@ def get_person_data(json_data: str) -> Person:
         for authority in authorities:
             parts = authority.split(']')
             if AUTHORITIES['VIAF'] in parts[0]:
-                person.viaf = get_viaf_id(parts[1])
+                person.identifierviaf = get_viaf_id(parts[1])
 
     find_wikidata_qid(person)
     return person
@@ -74,9 +74,9 @@ def get_person_data(json_data: str) -> Person:
 def find_wikidata_qid(person: Person) -> None:
 
     if person.id in qids:
-        person.wikidata = qids[person.id]
+        person.identifier.wikidata = qids[person.id]
 
-def parse_date_and_place(date_and_place: str) -> tuple[str, str]: 
+def parse_date_and_place(date_and_place: str) -> Event:
     date = ""
     place = ""
     if ',' in date_and_place:
@@ -91,13 +91,13 @@ def parse_date_and_place(date_and_place: str) -> tuple[str, str]:
             date = date_and_place
         else:
             place = date_and_place
-    return (date, place)
+    return Event(place, date)
 
 
 def parse_place(parts: List[str]) -> str:
     place = ''
     for part in parts:
-        place += "{}, ".format(part.strip())
+        place += f"{part.strip()}, "
     return beautify_string(place)
 
 
@@ -122,9 +122,9 @@ def get_picture(person: Person, urls: List[str]) -> None:
 
 def get_names(person: Person, names: List[str]) -> None:
     first_and_last = names[0].split(',')
-    person.firstname = first_and_last[1].strip()
-    person.lastname = first_and_last[0].strip()
-    person.fullname = f"{person.firstname} {person.lastname}"
+    person.name.first = first_and_last[1].strip()
+    person.name.last = first_and_last[0].strip()
+    person.name.full = f"{person.name.first} {person.name.last}"
 
     length = len(names)
     if length > 1:
@@ -132,17 +132,17 @@ def get_names(person: Person, names: List[str]) -> None:
             name = names[index]
             if ',' in name:
                 first_and_last = name.split(',')
-                person.alias += f"{first_and_last[1].strip()} {first_and_last[0]}, "
+                person.name.alias += f"{first_and_last[1].strip()} {first_and_last[0]}, "
             else:
-                person.alias += f"{name}, "
-        person.alias = beautify_string(person.alias)
+                person.name.alias += f"{name}, "
+        person.name.alias = beautify_string(person.name.alias)
 
 
 def parse_occupation(person: Person, occupations: List[str]) -> None:
     for occupation in occupations:
-        person.occupation += "{}, ".format(occupation.strip())
+        person.occupation += f"{occupation.strip()}, "
 
-    person.occupation = beautify_string(person.occupation) 
+    person.occupation = beautify_string(person.occupation)
 
 
 if __name__ == "__main__":

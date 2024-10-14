@@ -3,7 +3,14 @@
 import xml.etree.ElementTree as ET
 import os
 import csv
+from pathlib import Path
+from sys import path
 from dotenv import load_dotenv
+
+# import local packages
+path_root = Path(__file__).parents[2]
+path.append(str(path_root))
+from scripts.person import Person, Alias, beautify_string, write_csv
 
 load_dotenv()
 
@@ -20,44 +27,15 @@ XML_TAG_NAMES = {
 # variables
 persons = []
 
-# classes
-class Person:
-    def __init__(self) -> None:
-        self.uri = ''
-        self.firstname = ''
-        self.lastname = ''
-        self.alias = ''
-        self.birthdate = ''
-        self.deathdate = ''
-        self.place_of_birth = ''
-        self.place_of_death = ''
-        self.occupation = ''
-        self.picture = ''
-        self.dbnl = ''
-        self.odis = ''
-        self.wikidata = ''
-        self.viaf = ''
-        self.rkd = ''
-
-    def print_properties(self):
-        return [self.uri, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
-                self.place_of_death, self.deathdate, self.occupation, self.dbnl, self.odis, self.wikidata, 
-                self.viaf, self.rkd, self.picture]
-
-class Alias:
-    def __init__(self) -> None:
-        self.first = ''
-        self.last = ''
-
 # methods
-def set_names(person, root) -> None:
+def set_names(person: Person, root) -> None:
     for name in root.findall('Names'):
         if name.find('Qualifier').text is None:
-            person.firstname = name.find(XML_TAG_NAMES['FIRST_NAME']).text
-            person.lastname = name.find(XML_TAG_NAMES['LAST_NAME']).text
+            person.name.first = name.find(XML_TAG_NAMES['FIRST_NAME']).text
+            person.name.last = name.find(XML_TAG_NAMES['LAST_NAME']).text
             suffix = name.find(XML_TAG_NAMES['SUFFIX']).text
             if suffix:
-                person.firstname += " {}".format(suffix)
+                person.name.first += f" {suffix}"
 
         else:
             alias = Alias()
@@ -67,15 +45,15 @@ def set_names(person, root) -> None:
             if firstname:
                 alias.first = firstname
             if suffix:
-                alias.first += " {}".format(suffix)
+                alias.first += f" {suffix}"
             if lastname:
-                alias.last = lastname    
-            person.alias += "{} {},".format(alias.first, alias.last).strip()
+                alias.last = lastname
+            person.name.alias += f"{alias.get_alias()},".strip()
+
+    if person.name.alias.endswith(','):
+        person.name.alias = person.name.alias[:-1]
         
-    if person.alias.endswith(','):
-        person.alias = person.alias[:-1]
-        
-def set_dates(person, root) -> None:
+def set_dates(person: Person, root) -> None:
     dates = root.find('DatesOfExistence')
     if dates:
         structured_dates = dates.find('StructuredDateRange')
@@ -84,32 +62,32 @@ def set_dates(person, root) -> None:
             deathdate = structured_dates.find('EndDateStandardized').text
             birthdate = structured_dates.find('BeginDateStandardized').text
             if birthdate:
-                person.birthdate = birthdate
+                person.birth.date = birthdate
             if deathdate:
-                person.deathdate = deathdate
+                person.death.date = deathdate
         elif single_date:
             date = single_date.find('DateStandardized').text
             match single_date.find('DateRole').text:
                 case 'begin':
-                    person.birthdate = date
+                    person.birth.date = date
                 case 'end':
-                    person.deathdate = date
+                    person.death.date = date
 
-def set_user_places(person, root) -> None:
+def set_user_places(person: Person, root) -> None:
     places = root.findall('AgentPlaces')
     for place in places:
-        type = place.find('PlaceRole').text
-        if type == XML_TAG_NAMES['DEATH_PLACE']:
-            person.place_of_death = place.find('Subjects').find('Ref').text
-        if type == XML_TAG_NAMES['BIRTH_PLACE']:
-            person.place_of_birth = place.find('Subjects').find('Ref').text
+        place_type = place.find('PlaceRole').text
+        if place_type == XML_TAG_NAMES['DEATH_PLACE']:
+            person.death.place = place.find('Subjects').find('Ref').text
+        if place_type == XML_TAG_NAMES['BIRTH_PLACE']:
+            person.birth.place = place.find('Subjects').find('Ref').text
 
-def set_occupation(person, root) -> None:
+def set_occupation(person: Person, root) -> None:
     occupations = root.findall('AgentOccupations')
     if occupations:
         for occupation in occupations:
             occupation_note = occupation.find('Notes').find('Content').find('String').text
-            person.occupation += "{},".format(occupation_note).strip()          
+            person.occupation += f"{occupation_note},".strip()
 
     if person.occupation.endswith(','):
         person.occupation = person.occupation[:-1]
@@ -119,10 +97,9 @@ def set_occupation(person, root) -> None:
 def find_id(value: str) -> str:
     if '?' in value:
         return value.split('=')[-1]
-    else:
-        return value.split('/')[-1]
+    return value.split('/')[-1]
 
-def set_external_identifiers(person, root) -> None:
+def set_external_identifiers(person: Person, root) -> None:
     docs = root.findall('ExternalDocuments')
     for doc in docs:
         doc_type = doc.find('Title').text
@@ -133,15 +110,15 @@ def set_external_identifiers(person, root) -> None:
             identifier = find_id(doc_value)
             match doc_type:
                 case 'dbnl':
-                    person.dbnl = identifier
+                    person.identifier.dbnl = identifier
                 case 'odis':
-                    person.odis = identifier
+                    person.identifier.odis = identifier
                 case 'wikidata':
-                    person.wikidata = identifier
+                    person.identifier.wikidata = identifier
                 case 'viaf':
-                    person.viaf = identifier
+                    person.identifier.viaf = identifier
                 case 'rkd':
-                    person.rkd = identifier
+                    person.identifier.rkd = identifier
 
 def parse_xml(file) -> None:
     tree = ET.parse(file)
@@ -149,7 +126,7 @@ def parse_xml(file) -> None:
     jsonmodel = root.find('JsonmodelType').text
 
     if  jsonmodel == 'agent_person':
-        person = Person()        
+        person = Person()
         # firstname, lastname & aliases
         set_names(person, root)
         # geboorte- en sterfdatum
@@ -174,11 +151,4 @@ if __name__ == "__main__":
         if file_path.endswith('.xml'):
             parse_xml(file_path)
 
-    with open('authorities_letterenhuis.csv', 'w', newline='', encoding='utf-8') as csv_file:
-        writer = csv.writer(csv_file)
-        header = ['URI', 'voornaam', 'achternaam', 'alias', 'geboorteplaats', 'geboortedatum',
-                  'sterfplaats', 'sterfdatum', 'beroep', 'dbnl author ID', 'ODIS ID', 'Wikidata ID', 
-                  'VIAF ID', 'RKD ID', 'foto URL']
-        writer.writerow(header)
-        for person in persons:
-            writer.writerow(person.print_properties())
+    write_csv('authorities_letterenhuis.csv', persons)

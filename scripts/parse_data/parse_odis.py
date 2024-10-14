@@ -7,7 +7,7 @@ from pathlib import Path
 # import local packages
 path_root = Path(__file__).parents[2]
 path.append(str(path_root))
-from scripts.person import Person, beautify_string, get_dbnl_id, get_wikidata_id, write_csv
+from scripts.person import Person, Event, beautify_string, get_dbnl_id, get_wikidata_id, write_csv
 
 JSON_KEY_NAMES = {
     'URI': 'URL',
@@ -33,25 +33,25 @@ OUTPUT = argv[2]
 
 def get_person_data(json_data: dict) -> Person:
     person = Person()
-    person.uri = "{}".format(json_data[JSON_KEY_NAMES['URI']])
-    person.odis = "{}_{}".format(json_data['RUBRIEK'], json_data['ID'])
-    print(person.odis)
-    person.fullname = "{}".format(json_data['OMSCHRIJVING'])
+    person.identifier.uri = f"{json_data[JSON_KEY_NAMES['URI']]}"
+    person.identifier.odis = f"{json_data['RUBRIEK']}_{json_data['ID']}"
+    print(person.identifier.odis)
+    person.name.full = f"{json_data['OMSCHRIJVING']}"
 
     steekkaarten = json_data['STEEKKAART']
     for steekkaart in steekkaarten:
         names = steekkaart['PS_NAMEN']
-        parse_names(person, names)            
-        
-        person.birthdate = steekkaart.get(JSON_KEY_NAMES['BIRTH_DATE'], '')
-        person.deathdate = steekkaart.get(JSON_KEY_NAMES['DEATH_DATE'], '')
-        person.place_of_birth = steekkaart.get(JSON_KEY_NAMES['BIRTH_PLACE'], '')
-        person.place_of_death = steekkaart.get(JSON_KEY_NAMES['DEATH_PLACE'], '')
+        parse_names(person, names)
+
+        person.birth = Event(steekkaart.get(JSON_KEY_NAMES['BIRTH_PLACE'], ''), 
+                             steekkaart.get(JSON_KEY_NAMES['BIRTH_DATE'], ''))
+        person.death = Event(steekkaart.get(JSON_KEY_NAMES['DEATH_PLACE'], ''), 
+                             steekkaart.get(JSON_KEY_NAMES['DEATH_DATE'], ''))
                 
         pictures = steekkaart.get(JSON_KEY_NAMES['PICTURE'])
         if pictures:
             for picture in pictures:
-                person.picture += 'ID: {}, '.format(picture.get('ID'))
+                person.picture += f'ID: {picture.get('ID')}, '
             person.picture = beautify_string(person.picture)
 
         authorities = steekkaart.get(JSON_KEY_NAMES['AUTHORITIES'], [])
@@ -67,19 +67,19 @@ def parse_names(person: Person, names: List[dict]) -> None:
         if naam:
             naam = naam.rstrip()
             if 'voornaam' in naamsoort:
-                person.firstname += '{} '.format(naam)
+                person.name.first += f'{naam} '
             elif 'familienaam' in naamsoort:
                 lastnames.append(naam)
             else:
-                person.alias += '{}, '.format(naam)
-    person.lastname = lastnames[0]
+                person.name.alias += f'{naam}, '
+    person.name.last = lastnames[0]
     lastnames_length = len(lastnames)
     if lastnames_length > 1:
         for index in range(1, lastnames_length):
-            person.alias += '{}, '.format(lastnames[index])
+            person.name.alias += f'{lastnames[index]}, '
 
-    person.firstname = beautify_string(person.firstname)
-    person.alias = beautify_string(person.alias)
+    person.name.first = beautify_string(person.name.first)
+    person.name.alias = beautify_string(person.name.alias)
 
 def parse_authorities(person: Person, authorities: List[dict]) -> None:
     for authority in authorities:
@@ -87,12 +87,12 @@ def parse_authorities(person: Person, authorities: List[dict]) -> None:
         authority_url = authority['B_URL']
         if authority_type:
             if authority_type == AUTHORITIES['VIAF']:
-                id = authority_url.split('/')[-2]
-                person.viaf = id
+                identifier = authority_url.split('/')[-2]
+                person.viaf = identifier
             if authority_type == AUTHORITIES['WIKIDATA']:
-                person.wikidata = get_wikidata_id(authority_url)
+                person.identifier.wikidata = get_wikidata_id(authority_url)
             if authority_type.strip() == AUTHORITIES['DBNL']:
-                person.dbnl = get_dbnl_id(authority_url)
+                person.identifier.dbnl = get_dbnl_id(authority_url)
 
 # main
 if __name__ == "__main__":
@@ -102,9 +102,6 @@ if __name__ == "__main__":
     with open(FILE, "r", encoding='utf-8') as json_file:
         data = json.load(json_file)
         for agent in data:
-            person = get_person_data(agent)
-            persons.append(person)
-    
-    write_csv(OUTPUT, persons)
+            persons.append(get_person_data(agent))
 
-    
+    write_csv(OUTPUT, persons)

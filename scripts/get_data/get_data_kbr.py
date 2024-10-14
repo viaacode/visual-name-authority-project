@@ -1,3 +1,5 @@
+"""Script to download XML-files from the OAI-PMH server of KBR"""
+
 import xml.dom.minidom
 import requests
 
@@ -6,11 +8,11 @@ OAI_VERB = 'ListRecords'
 FOLDER = 'path/to/my_folder' # change this
 
 for page in range(0,492100,100):
-  token = "!!AUTHOR!{}!492043!oai_dc".format(page)
-  url = "{}?verb={}&resumptionToken={}".format(DOMAIN, OAI_VERB, token)
-  response = requests.get(url)
-  response.encoding = response.apparent_encoding
-  xml_data = xml.dom.minidom.parseString(response.text)
+    token = f"!!AUTHOR!{page}!492043!oai_dc"
+    url = f"{DOMAIN}?verb={OAI_VERB}&resumptionToken={token}"
+    response = requests.get(url, timeout=60)
+    response.encoding = response.apparent_encoding
+    xml_data = xml.dom.minidom.parseString(response.text)
 
-  with open("{}/kbr_oai_pmh_{}.xml".format(FOLDER, page), 'w', encoding='utf-8') as file:
-    file.write(xml_data.toprettyxml())
+    with open(f"{FOLDER}/kbr_oai_pmh_{page}.xml", 'w', encoding='utf-8') as file:
+        file.write(xml_data.toprettyxml())

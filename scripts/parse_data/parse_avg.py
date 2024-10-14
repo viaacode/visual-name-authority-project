@@ -31,15 +31,12 @@ persons = []
 def split_date(person: Person, date: str):
     dates = date.split('-')
     birthdate = dates[0].strip()
-    person.birthdate = format_date(birthdate)
+    person.birth.date = format_date(birthdate)
 
 
     if len(dates) > 1:
         deathdate = dates[1].strip()
-        person.deathdate = format_date(deathdate)
-
-    print(person.birthdate)
-    print(person.deathdate)
+        person.death.date = format_date(deathdate)
 
 def format_date(date):
     locale.setlocale(locale.LC_ALL, 'fr_FR')
@@ -47,14 +44,13 @@ def format_date(date):
 
 def split_name(name: str):
     names = name.split(',')
-    print(names)
     return names
 
 def parse_pictures(person: Person, elements: list[ET.Element]):
     for element in elements:
-        piture_id = element.get(XML_TAG_NAMES['PICTURE_ID'])
-        piture_id = piture_id.replace('/', '')
-        person.picture += piture_id + ','
+        picture_id = element.get(XML_TAG_NAMES['PICTURE_ID'])
+        picture_id = picture_id.replace('/', '')
+        person.picture += picture_id + ','
     person.picture = beautify_string(person.picture)
 
 
@@ -68,9 +64,9 @@ def parse_xml(input_file):
 
         #fullname, firstname, lastname
         names = split_name(xml_person.find(XML_TAG_NAMES['FULLNAME']).text)
-        person.firstname = names[1].strip()
-        person.lastname = names[0].strip()
-        person.fullname = '{} {}'.format(person.firstname, person.lastname)
+        person.name.first = names[1].strip()
+        person.name.last = names[0].strip()
+        person.name.full = f'{person.name.first} {person.name.last}'
 
         #alias
         alias = xml_person.find(XML_TAG_NAMES['ALIAS'])
@@ -81,7 +77,7 @@ def parse_xml(input_file):
             else:
                 person.alias = aliases[0]
         except Exception as error:
-            print("{} has no alias".format(person.fullname))
+            print(f"{person.name.full} has no alias")
             print(error)
 
         #birth & death date
@@ -90,22 +86,9 @@ def parse_xml(input_file):
         #pictures
         pictures = xml_person.findall(XML_TAG_NAMES['PICTURE_TAG'])
         parse_pictures(person,pictures)
-        print(person.picture)
         persons.append(person)
 
 
 if __name__ == '__main__':
     parse_xml(FILE)
     write_csv(OUTPUT, persons)
-
-
-
-
-
-
-
-
-
-
-    
-

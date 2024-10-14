@@ -1,7 +1,10 @@
+"""Module for parsing person data for Visual Name Authority"""
+
 from typing import List
 from csv import writer
-import sys
+from dataclasses import dataclass
 
+@dataclass
 class Person:
     """
     Represents a person entity with various attributes.
@@ -28,26 +31,30 @@ class Person:
         isni (str): Identifier for the person from ISNI
     """
 
-    def __init__(self) -> None:        
+    def __init__(self) -> None:
 
-        self.uri = ''
+        #self.uri = ''
         self.id = ''
-        self.fullname = ''
-        self.firstname = ''
-        self.lastname = ''
-        self.alias = ''
-        self.birthdate = ''
-        self.deathdate = ''
-        self.place_of_birth = ''
-        self.place_of_death = ''
+        self.name = Name()
+        #self.fullname = ''
+        #self.firstname = ''
+        #self.lastname = ''
+        #self.alias = ''
+        self.birth = Event()
+        self.death = Event()
+        #self.birthdate = ''
+        #self.deathdate = ''
+        #self.place_of_birth = ''
+        #self.place_of_death = ''
         self.occupation = ''
         self.picture = ''
-        self.dbnl = ''
-        self.odis = ''
-        self.wikidata = ''
-        self.viaf = ''
-        self.rkd = ''
-        self.isni = ''
+        self.identifier = Identifier()
+        #self.dbnl = ''
+        #self.odis = ''
+        #self.wikidata = ''
+        #self.viaf = ''
+        #self.rkd = ''
+        #self.isni = ''
 
     def print_properties(self) -> List[str]:        
         """
@@ -56,10 +63,13 @@ class Person:
         Returns:
             List[str]: A list containing person properties in a specific order.
         """
-        return [self.uri, self.id, self.fullname, self.firstname, self.lastname, self.alias, self.place_of_birth, self.birthdate, 
-                self.place_of_death, self.deathdate, self.occupation, self.dbnl, self.odis, self.wikidata, 
-                self.viaf, self.rkd, self.isni, self.picture]
+        return [self.identifier.uri, self.id, self.name.full, self.name.first,
+                self.name.last, self.name.alias, self.birth.place, self.birth.date,
+                self.death.place, self.death.date, self.occupation, self.identifier.dbnl,
+                self.identifier.odis, self.identifier.wikidata, self.identifier.viaf,
+                self.identifier.rkd, self.identifier.isni, self.picture]
 
+@dataclass
 class Alias:
     """
     Represents an alias or alternative name(s) of a person.
@@ -68,16 +78,47 @@ class Alias:
         first (str): The first name(s) of the alias.
         last (str): The last name(s) of the alias.
     """
-    def __init__(self) -> None:
-        self.first = ''
-        self.last = ''
+    first: str = ''
+    last: str = ''
 
+    def get_alias(self):
+        return self.first + ' ' + self.last
+
+@dataclass
 class Event():
-    def __init__(self, place = '', date = '') -> None:
-        self.place = place
-        self.date = date
+    place: str = ''
+    date: str = ''
 
+@dataclass
+class Identifier():
 
+    """
+        Represents an identifier entity with various attributes.
+
+        Attributes:
+            uri (str): a URI as identifier.
+            wikidata (str): Identifier from Wikidata.
+            odis (str): Identifier from ODIS.
+            rkd (str): Identifier from RKD.
+            dbnl (str): Identifier from the Digital Library for Dutch Literature.
+            viaf (str): Identifier from VIAF.
+            isni (str): Identifier from ISNI
+        """
+
+    uri: str = ''
+    wikidata: str = ''
+    odis: str = ''
+    rkd: str = ''
+    dbnl: str = ''
+    viaf: str = ''
+    isni: str = ''
+
+@dataclass
+class Name():
+    first: str = ""
+    last: str = ""
+    full: str = ""
+    alias: str = ""
 
 def get_wikidata_id(url: str) -> str:
     """
@@ -86,8 +127,8 @@ def get_wikidata_id(url: str) -> str:
         Returns:
             str: the Wikidata QID.
         """
-    id = url.split('/')[-1]
-    return id
+    identifier = url.split('/')[-1]
+    return identifier
 
 def get_dbnl_id(url: str) -> str:
     """
@@ -96,8 +137,8 @@ def get_dbnl_id(url: str) -> str:
         Returns:
             str: the DBNL ID.
     """
-    id = url.split('=')[-1]
-    return id
+    identifier = url.split('=')[-1]
+    return identifier
 
 def get_viaf_id(url: str) -> str:
     """
@@ -106,11 +147,10 @@ def get_viaf_id(url: str) -> str:
         Returns:
             str: the Wikidata QID.
         """
-    id = url.split('/')[-1].strip()
-    if id.isdigit():
-        return id
-    else:
-        return ""
+    identifier = url.split('/')[-1].strip()
+    if identifier.isdigit():
+        return identifier
+    return ""
 
 def beautify_string(value: str) -> str:
     value = value.strip()
@@ -119,7 +159,7 @@ def beautify_string(value: str) -> str:
     return value
 
 def write_csv(filename, persons: List[Person]):
-     with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
+    with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
         csv_writer = writer(csv_file)
         header = ['URI', 'ID', 'volledige naam', 'voornaam', 'achternaam', 'alias', 
                   'geboorteplaats', 'geboortedatum', 'sterfplaats', 

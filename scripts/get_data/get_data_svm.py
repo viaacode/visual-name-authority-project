@@ -31,12 +31,12 @@ def get_life_events(text: str, person: Person):
     life_events = [event.strip() for event in life_events]
     if len(life_events) > 0 and len(life_events[0]) > 2:
         birth_event = split_date_place(life_events[0])
-        person.birthdate = birth_event.date
-        person.place_of_birth = birth_event.place
+        person.birth.date = birth_event.date
+        person.birth.place = birth_event.place
     if len(life_events) > 1 and len(life_events[1]) > 2:
         death_event = split_date_place(life_events[1])
-        person.deathdate = death_event.date
-        person.place_of_death = death_event.place
+        person.death.date = death_event.date
+        person.death.place = death_event.place
 
 def split_date_place(text: str) -> Event:
     data = text.split(',')
@@ -51,8 +51,7 @@ def split_date_place(text: str) -> Event:
             print("[ERROR] No date or place")
             date = ERROR_MESSAGE
         return Event(place, date)
-    else: 
-        return Event()
+    return Event()
 
 
 def download_images(tags: ResultSet, directory: str, person: Person, session: Session):
@@ -61,7 +60,7 @@ def download_images(tags: ResultSet, directory: str, person: Person, session: Se
         filename = url.split('/')[-1]
         output_file = "{}/{}".format(directory, filename)
         if not os.path.exists(output_file):
-            print("[INFO] downloading image {}".format(url))
+            print(f"[INFO] downloading image {url}")
             image = session.get(url).content
             with open(output_file, 'wb') as handler:
                 handler.write(image)
@@ -71,27 +70,27 @@ def download_images(tags: ResultSet, directory: str, person: Person, session: Se
 def get_images(html: BeautifulSoup, person: Person, session: Session):
     tags = html.find_all("a", class_="js-modal-image")
     if tags:
-        id = person.uri.split('/')[-1]
-        folder = "{}/{}/{}".format(ROOT_FOLDER, PHOTO_FOLDER, id)
+        identifier = person.identifier.uri.split('/')[-1]
+        folder = f"{ROOT_FOLDER}/{PHOTO_FOLDER}/{identifier}"
         if not os.path.exists(folder):
             os.makedirs(folder)
         download_images(tags, folder, person, session)
         person.picture = beautify_string(person.picture)
     else:
-        print("[INFO] {} {} has no images".format(person.firstname, person.lastname))
+        print(f"[INFO] {person.name.first} {person.name.last} has no images")
 
 
 def split_names(value: str, person: Person) -> str:
     names = value.split(',')
     if len(names) > 1:
-        person.firstname = names[1].strip()
-        person.lastname = names[0].strip()
+        person.name.first = names[1].strip()
+        person.name.last = names[0].strip()
 
         if len(names) > 2:
             for name in names[2:]:
-                person.firstname += name      
+                person.name.first += name
     else:
-        person.fullname = value
+        person.name.full = value
 
 def create_svm_person(html: BeautifulSoup, person: Person, session: Session):
     names = html.title.string.split('|')[0].strip()
@@ -107,12 +106,12 @@ def get_data_svm():
     with open(TEXTFILE, 'r', encoding='utf-8') as file:
         with Session() as session:
             for url in file:
-                print("[INFO] retrieving data from {}".format(url.strip()))
+                print(f"[INFO] retrieving data from {url.strip()}")
                 response = session.get(url.strip())
                 if response.ok:
                     soup = BeautifulSoup(response.content, "html.parser")
                     person = Person()
-                    person.uri = url.strip()
+                    person.identifier.uri = url.strip()
                     create_svm_person(soup, person, session)
                     persons.append(person)
                 sleep(2)
