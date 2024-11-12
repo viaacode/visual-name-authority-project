@@ -12,7 +12,7 @@ def get_picture(url: str, id: str, session: requests.Session) -> None:
     with open('{}/{}.jpg'.format(FOLDER, id), 'wb') as handler:
         handler.write(image)
 
-with open(source_file, 'r') as source:
+with open(source_file, 'r', encoding='utf-8') as source:
     reader = DictReader(source)
     with requests.Session() as session:
         for row in reader:
