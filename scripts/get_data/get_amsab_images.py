@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# constans
+# constants
 CSV = os.getenv('AMSAB_FOTOS')
 OUTPUT_FOLDER = os.getenv('AMSAB_FOLDER')
 MANIFEST = "https://iiif.amsab.be/iiif/3/manifest/52772"
@@ -29,7 +29,7 @@ def download_image(url, path, filename):
     if not os.path.exists(path):
         os.mkdir(path)
     os.system(
-        f"wget -O {path}/{filename}.jpg $(curl {iiif_manifest} | jq -r '.items[].items[].items[].body.id')")
+        f"wget -O {path}/{filename}.jpg -nc $(curl {iiif_manifest} | jq -r '.items[].items[].items[].body.id')")
     sleep(2)
 
 
