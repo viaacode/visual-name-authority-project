@@ -37,11 +37,11 @@ if __name__ == '__main__':
         reader =  DictReader(csv_file)
         
         for row in reader:
-            category = row["Commons category"]
-            image = row["image"]
+            category = row["Commonscategorie"]
+            image = row["afbeelding"]
             
             if category or image:
-                print("busy with " + row["volledige naam"])
+                print(f"busy with {row['Wikidata ID']}: {row["volledige naam"]}")
                 download_path = "{}/{}".format(output_folder, row['Wikidata ID'])
                 Path(download_path).mkdir(parents=True, exist_ok=True)
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                 if image:
                     download_image(download_path, image)
   
-            print("done\n")
+                print("done\n")
 
 
 shutil.rmtree('apicache')

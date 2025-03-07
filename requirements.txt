@@ -12,3 +12,4 @@ numpy
 wheel
 cython
 git+https://github.com/facebookresearch/detectron2.git
+spacy

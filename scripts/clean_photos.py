@@ -56,15 +56,15 @@ def write_data(directory: str, data):
         csv_writer.writerows(data)
     output_csv.close()
 
-def is_portret(predictor: DefaultPredictor, photo):
+def is_portret(predictor: DefaultPredictor, photo: str):
     print(f"is {photo} a portret?")
+    directory, filename = os.path.split(str(photo))
+
     try:
         image = cv2.imread(photo)
         outputs = predictor(image)
         instances = outputs["instances"]
         count_instances = len(instances)
-
-        directory, filename = os.path.split(str(photo))
 
         if  count_instances == 1:
             print("one instance found on " + str(photo))
@@ -92,6 +92,8 @@ def is_portret(predictor: DefaultPredictor, photo):
 
     except Exception as error:
         print(error)
+        # remove images that can't be read
+        os.remove(photo)
         return
 
 def get_location(directory, name):
@@ -108,7 +110,7 @@ def clean_photos():
     directory, filename = os.path.split(list_photos[0][0])
 
     if HAS_SUBDIRECTORIES:
-        head = os.path.split(directory)[1]
+        head = os.path.split(directory)[0]
         location = head
     else:
         location = directory
@@ -124,6 +126,7 @@ def clean_photos():
             print(f"{filename} is not a portret")
 
     write_data(location, lines)
+    print(location)
 
 if __name__ == "__main__":
     clean_photos()
