@@ -77,7 +77,7 @@ class Identifier():
     isni: str = ''
 
 @dataclass
-class Person:
+class Person():
     """
     Class representing a person.
 
