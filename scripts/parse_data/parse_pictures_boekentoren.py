@@ -74,41 +74,61 @@ def get_viaf(sentence: str) -> str:
     return viaf
 
 def get_real_name(sentence: str, person: Person):
-    pseudos = re.split(r'\([a-zA-Z]+\)\S+', sentence)
-    pseudo = pseudos[1].split("pseudoniem van")
-    if len(pseudo) > 1:
-        pseudo = pseudo[1].strip()
-        person.alias = person.label
-        person.realname = pseudo
+    if person.label.split(' ')[0] in sentence:
+        pseudos = re.split(r'\([a-zA-Z]+\)\S+', sentence)
+        pseudo = pseudos[1].split("pseudoniem van")
+        if len(pseudo) > 1:
+            pseudo = pseudo[1].strip()
+            person.alias = person.label
+            person.realname = pseudo
+    else:
+        realname = sentence.split(" (")
+        if len(realname) > 1:
+            (lastname, firstname) = realname[0].split(', ')
+            person.realname = f"{firstname} {lastname}"
+            person.label = person.realname
 
-def get_depicted(persons_lines: list[str], person: Person):
+def get_depicted(person_info: str, person: Person) -> Person:
+    dates = re.findall(r"\d{4}-\d{4}", person_info)
+    if dates:
+        (birth, death) = dates[0].split('-')
+        person.birthdate = birth
+        person.deathdate = death
+    person.viaf = get_viaf(person_info)
+    get_real_name(person_info, person)
+    return person
+
+def get_depicted_persons(persons_lines: list[str], person: Person):
     for sentence in persons_lines:
         #print(sentence)
         if person.label.split(' ')[0] in sentence:
-            dates = re.findall(r"\d{4}-\d{4}", sentence)
-            if dates:
-                (birth, death) = dates[0].split('-')
-                person.birthdate = birth
-                person.deathdate = death
-            person.viaf = get_viaf(sentence)
-            get_real_name(sentence, person)
+            person = get_depicted(sentence, person)
 
 def get_persons(json_root, title) -> list[Person]:
     names = get_person_names(title)
     persons = []
-    extra_persons_info = json_root.get('display_author')    
+    extra_persons_info = json_root.get('display_author')
     for name in names:
         person = Person(label=name)
         if extra_persons_info:
             extra_persons_info = [item for item in extra_persons_info if "dpc" in item]
-            get_depicted(extra_persons_info, person)
-
-        print(f"person: {person.label} born with alias {person.alias} in {person.birthdate} with viaf {person.viaf}")
+            get_depicted_persons(extra_persons_info, person)
+            if person.alias == '':
+                person.realname = person.label
         persons.append(person)
     
-    if len([item for item in extra_persons_info if "dpc" in item]) > len(persons):
+    depicted_persons = [item for item in extra_persons_info if "dpc" in item]
+    if len(depicted_persons) > len(persons):
+        alias = persons[0].label
         print(f"NAKIJKEN, personen: {len(persons)}, extra info: {len(extra_persons_info)}")
-
+        for depicted_person in depicted_persons:
+            person = Person(label=alias, alias=alias)
+            persons.append(get_depicted(depicted_person, person))
+        persons.pop(0)
+    
+    for person in persons:
+        print(f"person: {person.realname} born with alias {person.alias} in {person.birthdate} with viaf {person.viaf}")
+    
     return persons
 
 for json_file in os.listdir(FOLDER)[:30]:
