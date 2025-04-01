@@ -43,8 +43,20 @@ class Photo:
     id: str = ""
     title: str = ""
     type: str = "PORTRET"
-    persons = []
+    persons = [Person]
     license: str = ""
+
+    def print_properties(self) -> list[list[str]]:
+
+        lines = []
+
+        for person in self.persons:
+            line = [self.id, self.title, self.type, person.realname, person.alias, person.birthdate, person.deathdate, person.viaf]
+            lines.append(line)
+        
+        return lines
+
+
 
 def get_person_names(sentence: str) -> list[str]:
     """ 
@@ -82,8 +94,11 @@ def get_real_name(sentence: str, person: Person):
             person.alias = person.label
             person.realname = pseudo
     else:
+        print(sentence)
         realname = sentence.split(" (")
         if len(realname) > 1:
+            print(realname)
+            # voor Van Severen moet ook de datum toegevoegd worden.
             (lastname, firstname) = realname[0].split(', ')
             person.realname = f"{firstname} {lastname}"
             person.label = person.realname
@@ -126,22 +141,30 @@ def get_persons(json_root, title) -> list[Person]:
             persons.append(get_depicted(depicted_person, person))
         persons.pop(0)
     
-    for person in persons:
-        print(f"person: {person.realname} born with alias {person.alias} in {person.birthdate} with viaf {person.viaf}")
+    #for person in persons:
+        #print(f"person: {person.realname} born with alias {person.alias} in {person.birthdate} with viaf {person.viaf}")
     
     return persons
 
-for json_file in os.listdir(FOLDER)[:30]:
+photos = []
+
+for json_file in os.listdir(FOLDER)[:60]:
     photo = Photo()
     with open(f"{FOLDER}/{json_file}", 'r', encoding="utf-8", ) as datafile:
         data = json.load(datafile)
         document = data['response']['document']
         photo.id = document.get('id', '')
         photo.title = document.get('title','')
+        print(f"{photo.id}: {photo.title}")
         photo.license = document.get('has_download_license', '')
         photo.persons = get_persons(document, photo.title)
         if len(photo.persons) > 1:
             photo.type = "GROEP"
         #if person_names:
             #get_depicted(person_names)
-        print(f"photo: {photo.id}, {photo.type}, {photo.title}, {photo.license}")
+        photos.append(photo)
+        
+for photo in photos:
+    for property in photo.print_properties():
+        print(property)
+
