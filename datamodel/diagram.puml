@@ -6,6 +6,7 @@ class "<b>Persoon (schema:Person)</b>" {
     voornaam : string [0..*]
     achternaam : string [0..*]
     alias : string [0..*]
+    beschrijving : string [0..1]
     geboortedatum : EDTF [0..*]
     sterfdatum : EDTF [0..*]
     externe identifier : URI [0..*]
@@ -29,7 +30,7 @@ class "<b>Afbeelding (schema:ImageObject)</b>" {
 "<b>Persoon (schema:Person)</b>" "0" -> "*" "<b>Plaats (schema:Place)</b>" : sterfplaats
 "<b>Beroep (schema:Occupation)</b>" "*" <-- "0" "<b>Persoon (schema:Person)</b>": heeft beroep
 "<b>Persoon (schema:Person)</b>" "0" --> "1" "<b>Afbeelding (schema:ImageObject)</b>": heeft afbeelding
-"<b>Afbeelding (schema:ImageObject)</b>" "1" --> "1" "<b>Afbeelding (schema:ImageObject)</b>": crop
+"<b>Afbeelding (schema:ImageObject)</b>" "0" --> "1" "<b>Afbeelding (schema:ImageObject)</b>": crop
 
 class "<b>Organisatie (org:Organization)</b>" {
     naam : langString [1..1]
