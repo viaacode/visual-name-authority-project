@@ -312,7 +312,7 @@ def proces_images(arguments: Namespace) -> Path:
         OSError: If there is a system related error.
     """
 
-    summary_rows = [["filename", "location", "aantal gezichten"]]
+    summary_rows = [["filename", "location", "num_faces"]]
     list_photos = get_paths_list(arguments.source_file)
     logging.info("Found %d image(s) to process.", len(list_photos))
     
@@ -381,8 +381,6 @@ def setup_parser() -> Namespace:
                    help="Path to a text file with image paths (1 column).")
     parser.add_argument("--subdirectories", action="store_true",
                    help="images are in subdirectories that should be preserverd.")
-    parser.add_argument("--threshold", type=float, default=0.7,
-                   help="Detection score threshold (default: 0.7).")
     parser.add_argument("--output-root", type=Path, default=None,
                    help="Explicit output root directory.")
 
