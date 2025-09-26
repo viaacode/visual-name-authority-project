@@ -2,25 +2,31 @@ import requests
 from csv import DictReader
 from sys import argv
 from time import sleep
+import os
 
-source_file = argv[1]
+SOURCEFILE = argv[1]
 FOLDER = argv[2]
 
-def get_picture(url: str, id: str, session: requests.Session) -> None:
-    image = session.get(url).content
-    print("getting picture {}".format(url))
-    with open('{}/{}.jpg'.format(FOLDER, id), 'wb') as handler:
-        handler.write(image)
+def get_picture(url: str, filename: str) -> None:
+    #image = session.get(url).content
+    print(f"getting picture {url}")
+        #with open('{}.format(filename), 'wb') as handler:
+            #handler.write(image)
+    os.system(f"wget -O {filename} {url}")
 
-with open(source_file, 'r', encoding='utf-8') as source:
+with open(SOURCEFILE, 'r', encoding='utf-8') as source:
     reader = DictReader(source)
-    with requests.Session() as session:
-        for row in reader:
-            id = row['URI'].split('/')[-1]
-            url = row['foto']
-            print("busy with {}".format(id))
-            if url:
-                get_picture(url, id, session)
+    #with requests.Session() as session:
+    for row in reader:
+        image_id = row['URI'].split('/')[-1]
+        url = row['foto']
+        print(f"busy with {image_id}")
+        if url:
+            FILENAME = f'{FOLDER}/{image_id}.jpg'
+            if not os.path.exists(FILENAME):
+                get_picture(url, FILENAME)
+                sleep(3)
             else:
-                print('no picture')
-            sleep(3)
+                print(f'image {FILENAME} already exists')
+        else:
+            print('no picture')

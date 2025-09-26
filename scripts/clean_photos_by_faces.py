@@ -1,28 +1,25 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 """
-Photo Cleaner — Portrait / Group / Empty Classifier
+Photo Cleaner — Face-based Portrait / Group / Empty Classifier (OpenCV Haar)
 
-Reads a text file with image paths, runs Detectron2 (COCO-Keypoints) to count
-people per image, and moves files into category folders:
+Reads a text file with one image path per line, detects faces on CPU using
+OpenCV's Haar cascades, and moves images into:
 
-- portrets/  -> exactly 1 person
-- group/     -> more than 1 person
-- empty/     -> 0 persons
+- portrets/  -> exactly 1 face
+- group/     -> 2 or more faces
+- empty/     -> 0 faces
 
-Also writes a summary CSV: cleanup_portrets.csv
+Writes a summary CSV: cleanup_portrets.csv
 
-CLI
-----
 Example:
-    python script.py photos.txt --subdirectories
+    python script.py photos.txt
 
 Notes:
-    - Detectron2 installation depends on your system & PyTorch version.
-    - Unreadable/corrupt images are removed (see side effects on functions).
+    - Haar cascades are lightweight & CPU-friendly, but less accurate than modern DNNs.
 """
 
+#---------- Imports ----------
 from argparse import ArgumentParser, Namespace
 import csv
 import logging
@@ -30,26 +27,42 @@ from pathlib import Path
 import shutil
 from typing import Iterable, List
 
-# import some common detectron2 utilities
-from detectron2 import model_zoo
-from detectron2.engine import DefaultPredictor
-from detectron2.config import get_cfg
 import cv2
 
 # Workflow:
 # 1) Read list of image paths from SOURCE_FILE.
-# 2) Detect number of persons per photo using Detectron2 (COCO-Keypoints).
+# 2) Detect number of faces per photo.
 # 3) Move file to:
-#    - ./portrets/ if exactly 1 person,
-#    - ./empty/    if 0 persons,
-#    - ./group/    if more than 1 person.
+#    - ./portrets/ if exactly 1 face,
+#    - ./empty/    if 0 facas,
+#    - ./group/    if more than 1 face.
 # 4) Write summary CSV (cleanup_portrets.csv).
 
-# ---------- variables ----------
-cfg = get_cfg()
+# ---------- Constants ----------
+SCALE_FACTOR: float = 1.1 # image pyramid scale factor
+MIN_NEIGHBORS: int = 5 # min neigbors
+MIN_SIZE: int = 100 # minimum face size in px
+CASCADE_NAME = "haarcascade_frontalface_default.xml" # Cascade file in cv2.data.haarcascades
 
 
 # ---------- I/O helpers ----------
+
+def create_dirs(base: Path):
+    """Create (or ensure) the three destination category directories.
+
+    Args:
+        base: Output root directory under which `portrets`, `empty`, and `group` live.
+
+    Returns:
+        A tuple `(portrets_path, empty_path, group_path)`.
+    """
+    portrets = base / "portrets"
+    empty = base / "empty"
+    group = base / "group"
+    for directory in (portrets, empty, group):
+        directory.mkdir(parents=True, exist_ok=True)
+        logging.info("%s created", directory)
+
 
 def get_paths_list(
     source_file: Path,
@@ -101,23 +114,6 @@ def get_paths_list(
     
     return paths
 
-def create_dirs(base: Path) -> None:
-    """
-    Create (or ensure) the three destination category directories.
-
-    Args:
-        base: Output root directory under which `portrets`, `empty`, and `group` live.
-
-    Returns:
-        None
-    """
-    portrets = base / "portrets"
-    empty = base / "empty"
-    group = base / "group"
-    for directory in (portrets, empty, group):
-        directory.mkdir(parents=True, exist_ok=True)
-        logging.info("%s created", directory)
-
 
 def find_directory(img_path: Path, category: str, output_dir: Path, subdirectories) -> Path:
     """Compute destination directory for a classified image.
@@ -144,9 +140,6 @@ def find_directory(img_path: Path, category: str, output_dir: Path, subdirectori
 def move_file(source_image: Path, destination: Path) -> Path:
     """Move a file into a destination directory without overwriting existing files.
 
-    If a name collision occurs, appends a numeric suffix (`_1`, `_2`, ...) to the
-    stem before moving.
-
     Args:
         source_image: Source file path.
         destionation: Destination directory path (created if missing).
@@ -161,6 +154,7 @@ def move_file(source_image: Path, destination: Path) -> Path:
         - Creates `destionation` if not present.
         - Moves `path` to `destination`
     """
+
     destination.mkdir(parents=True, exist_ok=True)
     destination_file = destination / source_image.name
 
@@ -175,68 +169,89 @@ def move_file(source_image: Path, destination: Path) -> Path:
     return destination_file
 
 
-# ---------- person detection ----------
+# ---------- Face detector ----------
 
-# setup detection model
-def setup_detection_model(threshold: float) -> DefaultPredictor:
-    """
-    Initializes a detection model by configuring its parameters.
+def setup_face_detector() -> cv2.CascadeClassifier:
+    """Construct and return an OpenCV Haar-cascade face detector.
 
-    This function sets up the model with specific configurations for the COCO-Keypoints
-    model, including device configuration, merging the model, setting a threshold,
-    and saving the model weights.
+    Loads the cascade file identified by the global ``CASCADE_NAME`` from
+    OpenCV’s bundled ``cv2.data.haarcascades`` directory, validates that the
+    classifier initialized correctly, and returns a ready-to-use
+    :class:`cv2.CascadeClassifier`.
 
-    Args:
-        None
-
-    Returns:
-        A DefaultPredictor object, that accepts BGR imges, which is the configured detection model.
-    """
-    logging.info("Setting up Detectron2 model")
-    cfg.MODEL.DEVICE = 'cpu' # Set the device to CPU to avoid GPU usage.  This is a common practice
-    cfg.merge_from_file(model_zoo.get_config_file(
-        "COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x.yaml")) # Load the configuration file
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = threshold  # Set threshold for the scoring model
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
-        "COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x.yaml") # Retrieve the model checkpoint URL
-    logging.info("done with setting up model")
-    return DefaultPredictor(cfg)
-
-
-def count_persons_in_image(predictor: DefaultPredictor, image) -> int:
-    """Count detected persons (COCO class id = 0) in an image.
-
-    Args:
-        predictor: A configured `DefaultPredictor`.
-        img_bgr: A BGR image array as returned by `cv2.imread`.
+    The returned detector expects grayscale input when calling
+    `detectMultiScale`. Convert BGR images with
+    `cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)` first. Typical parameters include
+    `scaleFactor=1.1`, `minNeighbors=5`, and `minSize=(100, 100)` if you
+    want to ignore faces smaller than 100×100 px.
 
     Returns:
-        Number of detected persons.
+        cv2.CascadeClassifier: Initialized Haar face detector.
+
+    Raises:
+        RuntimeError: If the cascade file cannot be found or loaded (i.e., the
+            classifier is empty).
+    """
+
+    cascade_path = Path(cv2.data.haarcascades) / CASCADE_NAME
+    detector = cv2.CascadeClassifier(str(cascade_path))
+    if detector.empty():
+        raise RuntimeError(f"Failed to load cascade: {cascade_path}")
+    logging.info("Loaded Haar cascade: %s", cascade_path)
+    return detector
+
+
+def count_faces(detector: cv2.CascadeClassifier, img_bgr) -> int:
+    """Count faces in a BGR image using a Haar-cascade detector.
+
+    Converts the input image to grayscale and runs ``detectMultiScale`` with
+    module-level parameters ``SCALE_FACTOR``, ``MIN_NEIGHBORS``, and ``MIN_SIZE``.
+    Returns the number of detections that meet those thresholds.
+
+    Args:
+        detector (cv2.CascadeClassifier): Initialized Haar face detector (e.g. from
+            :func:`setup_face_detector`).
+        img_bgr: BGR image array as returned by ``cv2.imread`` with shape (H, W, 3).
+
+    Returns:
+        int: Number of detected faces (>= 0). If no faces are found, returns 0.
 
     Notes:
-        - If `pred_classes` is not present (very unlikely), falls back to
-          the number of instances (which may overcount non-person classes).
+        - The image is converted to grayscale internally (``cv2.cvtColor``).
+        - ``SCALE_FACTOR`` (>1.0) controls the image pyramid scale step (smaller values
+          find more faces but are slower).
+        - ``MIN_NEIGHBORS`` trades recall for precision (higher → fewer, more confident
+          detections).
+        - ``MIN_SIZE`` is the minimum face size in pixels, applied to both width and height
+          (e.g., ``(100, 100)`` to ignore smaller faces).
+        - Depending on OpenCV version, ``detectMultiScale`` may return an empty sequence or
+          an array; this function treats both as zero detections.
+
+    Raises:
+        cv2.error: If the input image is invalid (e.g., wrong type/shape).
     """
-    outputs = predictor(image)
-    instances = outputs["instances"]
-    count_instances = len(instances)
-
-    try:
-        classes = instances.pred_classes.tolist()
-        logging.info("using classes")
-        return sum(1 for klasse in classes if klasse == 0)
-    except AttributeError:
-        logging.info("using count_instances")
-        return count_instances
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    faces = detector.detectMultiScale(
+        gray,
+        scaleFactor=SCALE_FACTOR,
+        minNeighbors=MIN_NEIGHBORS,
+        flags=cv2.CASCADE_SCALE_IMAGE,
+        minSize=(MIN_SIZE, MIN_SIZE),
+    )
+    return 0 if faces is None else int(len(faces))
 
 
-# ---------- pipeline ----------
+# ---------- Pipeline ----------
 
 def setup_logging() -> None:
-    """
-    Configure logging for CLI usage.
-    """
+    """Configure logging for CLI usage.
 
+    Args:
+        verbose: When True, sets log level to DEBUG; otherwise INFO.
+
+    Side Effects:
+        - Configures the global logging handler/format for the process.
+    """
     level = logging.INFO
     logging.basicConfig(
         level=level,
@@ -267,16 +282,16 @@ def write_summary_csv(directory: str, data):
     output_csv.close()
 
 
-def proces_images(arguments: Namespace):
+def proces_images(arguments: Namespace) -> Path:
     """Run the full classification/move pipeline and write a summary CSV.
 
     Steps:
         1. Read image list.
-        2. Resolve output root and ensure category directories.
+        2. Resolve output directory and ensure category directories.
         3. Initialize predictor.
         4. For each image:
             - Read, and remove unreadable files.
-            - Count persons.
+            - Count faces.
             - Move file to category directory.
             - Append to summary rows.
         5. Write `cleanup_portrets.csv`.
@@ -313,8 +328,8 @@ def proces_images(arguments: Namespace):
         location = directory.parent if subdirectories else directory
     logging.info("Output root: %s", location)
     create_dirs(location)
-
-    predictor = setup_detection_model(arguments.threshold)
+    
+    detector = setup_face_detector()
     for img_path in list_photos:
         try:
             if not img_path.exists():
@@ -331,31 +346,30 @@ def proces_images(arguments: Namespace):
                     logging.error("Failed to remove %s: %s", img_path, e)
                 continue
 
-            num_persons = count_persons_in_image(predictor, img)
+            num_faces = count_faces(detector, img)
 
-            if num_persons == 1:
+            if num_faces == 1:
                 category = "portrets"
-            elif num_persons == 0:
+            elif num_faces == 0:
                 category = "empty"
             else:
                 category = "group"
 
             destination_directory = find_directory(img_path, category, location, subdirectories)
             destination_path = move_file(img_path, destination_directory)
-            summary_rows.append([img_path, str(destination_path), str(num_persons)])
+            summary_rows.append([img_path, str(destination_path), str(num_faces)])
 
-            logging.info("%s -> %s (%s faces)", img_path, destination_directory, str(num_persons))
+            logging.info("%s -> %s (%s faces)", img_path, destination_directory, str(num_faces))
 
         except OSError as e:
             logging.exception("Error processing %s: %s", img_path, e)
 
     write_summary_csv(location, summary_rows)
+    return location
+
 
 def setup_parser() -> Namespace:
     """Parse CLI arguments.
-
-    Args:
-        None
 
     Returns:
         A Namespace object containing all arguments
@@ -371,7 +385,7 @@ def setup_parser() -> Namespace:
                    help="Detection score threshold (default: 0.7).")
     parser.add_argument("--output-root", type=Path, default=None,
                    help="Explicit output root directory.")
-    
+
     args = parser.parse_args()
 
     return args
@@ -380,4 +394,5 @@ def setup_parser() -> Namespace:
 if __name__ == "__main__":
     argument_list = setup_parser()
     setup_logging()
-    proces_images(argument_list)
+    output = proces_images(argument_list)
+    logging.info("Done. Output directory: %s", output)
