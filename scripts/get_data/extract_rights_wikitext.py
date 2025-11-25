@@ -54,6 +54,10 @@ SPECIAL_TEMPLATES = {"wikiportrait", "nationaal archief"}
 
 UNKNOWN = "Onbekend" # default value when a value is unknown
 
+# -------------------------------------------------------------
+# Basic helpers
+# -------------------------------------------------------------
+
 def normalize_whitespace(s: str) -> str:
     """
     When you extract text from Wikitext (or any HTML-like markup), you often end up with:
@@ -90,6 +94,11 @@ def get_param_value(template, names: set[str]):
             if value:
                 return value
     return None
+
+# -------------------------------------------------------------
+# Author detection helpers
+# -------------------------------------------------------------
+
 
 def simplify_creator_lang(value: str, preferred_langs = PREFERRED_LANGS) -> str:
     """
@@ -232,7 +241,6 @@ def get_most_strict_license(licenses: list[str]) -> str:
     cc-by-sa > cc-by > cc0/pd
     If licenses are even strict, keep the most recent version (4.0 > 3.0)
     """
-    print(licenses)
     cc_pd = []
 
     for lic in licenses:
