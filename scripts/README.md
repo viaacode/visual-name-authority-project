@@ -1,12 +1,12 @@
 # Scripts
 
-## clean_photos_by_faces.py — Face-based Portrait / Group / Empty (OpenCV Haar)
+## clean_photos_by_faces.py — Face-based Portrait / Group / Empty Classifier (OpenCV Haar)
 
 This scripts reads a **text file with one image path per line**, detects faces on CPU using **OpenCV’s Haar cascades**, and moves the images into category folders:
 
-* `portrets/` → exactly **1** face
+* `portrets/` → exactly **1** face that is at least 100x100 pixels
 * `group/` → **2 or more** faces
-* `empty/` → **0** faces
+* `empty/` → **0** faces (that are at least 100x100 pixels)
 
 It also writes a summary CSV named `cleanup_portrets.csv`.
 
@@ -225,6 +225,3 @@ python clean_photos.py --subdirectories /path/to/photos.txt
 
 * **Unreadable/corrupt images** → removed.
 * **Missing files** → skipped with a warning.
-
-## clean_photos_by_faces.py - Portrait / Group / Empty Classifier
-
