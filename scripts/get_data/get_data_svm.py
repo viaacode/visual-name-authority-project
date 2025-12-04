@@ -1,5 +1,15 @@
-"""Module for crawling data of https://www.svm.be/componisten and converting it to 
-the VNA CSV-format"""
+"""Crawler for https://www.svm.be/componisten that exports person data to VNA CSV.
+
+Reads a UTF-8 text file with one SVM person URL per line, scrapes structured data
+(name, birth/death date and place) and associated images, and writes a CSV via
+the project's `scripts.person` helpers (`Person`, `Event`, `write_csv`).
+
+Notes:
+    - Dates are expected as DD/MM/YYYY in a `<div class="text-xl">` string
+      that contains "birth — death" separated by an em dash.
+    - Images are discovered via `<a class="js-modal-image" href="...">`.
+    - A polite delay (2 seconds) is applied between HTTP requests.
+"""
 
 from datetime import datetime
 from pathlib import Path
@@ -25,9 +35,22 @@ ERROR_MESSAGE = 'FOUT!'
 #variables
 persons = []
 
-"""
-"""
-def get_life_events(text: str, person: Person): 
+def get_life_events(text: str, person: Person):
+    """Parse a "birth — death" string into Person.birth/Person.death.
+
+    The input typically looks like "° Place, DD/MM/YYYY — ✝ Place, DD/MM/YYYY"
+    but the function mainly relies on the " — " separator and delegates the
+    "place, date" parsing to `split_date_place`.
+
+    Args:
+        text: Raw life-events text extracted from the page (single line).
+        person: Mutable Person instance whose `birth` and `death` fields will
+            be populated with `.date` (YYYY-MM-DD) and `.place` (string).
+
+    Side Effects:
+        - Mutates `person.birth.date`, `person.birth.place`,
+          `person.death.date`, and `person.death.place`.
+    """
     life_events = text.split(' — ')
     life_events = [event.strip() for event in life_events]
     if len(life_events) > 0 and len(life_events[0]) > 2:
@@ -40,6 +63,22 @@ def get_life_events(text: str, person: Person):
         person.death.place = death_event.place
 
 def split_date_place(text: str) -> Event:
+    """Split a "place, DD/MM/YYYY" fragment into an Event(place, date).
+
+    The function assumes the last comma-separated token is the date in
+    `DD/MM/YYYY` and everything before that is the place (commas preserved).
+
+    Args:
+        text: A fragment like "° City, 01/02/1900" or "Place, Subplace, 31/12/1990".
+
+    Returns:
+        Event: with `.place` and `.date` set. If parsing fails or the fragment
+        is incomplete, `.date` is set to the error token `ERROR_MESSAGE`.
+
+    Notes:
+        - Date is formatted to ISO `YYYY-MM-DD` using `datetime.strptime(..., '%d/%m/%Y')`.
+    """
+
     data = text.split(',')
     if len(data) > 0:
         place = data[0][2:]
@@ -54,8 +93,23 @@ def split_date_place(text: str) -> Event:
         return Event(place, date)
     return Event()
 
-
 def download_images(tags: ResultSet, directory: str, person: Person, session: Session):
+    """Download all image links in `tags` and append their filenames to Person.picture.
+
+    For each `<a class="js-modal-image" href="...">` tag, the image is downloaded
+    (if not already present) into `directory`. The basename is appended
+    (comma-separated) to `person.picture`.
+
+    Args:
+        tags: BeautifulSoup ResultSet of <a> tags with `href` to the image file.
+        directory: Destination directory (created by caller).
+        person: Person object whose `.picture` will aggregate the filenames.
+        session: Shared requests Session used for HTTP GET.
+
+    Side Effects:
+        - Writes image files to `directory`.
+        - Mutates `person.picture` by appending filenames and trailing commas.
+    """
     for tag in tags:
         url = tag['href']
         filename = url.split('/')[-1]
@@ -69,6 +123,25 @@ def download_images(tags: ResultSet, directory: str, person: Person, session: Se
 
 
 def get_images(html: BeautifulSoup, person: Person, session: Session):
+    """Find and download person images, storing filenames on Person.picture.
+
+    Looks for `<a class="js-modal-image">` anchors. If present:
+      - The output subfolder is `<ROOT_FOLDER>/<PHOTO_FOLDER>/<identifier>`,
+        where `identifier` is taken from the last segment of `person.identifier.uri`.
+      - Files are downloaded via `download_images(...)`.
+      - `person.picture` is finally normalized with `beautify_string`.
+
+    If no images are found, an informational message is logged.
+
+    Args:
+        html: Parsed BeautifulSoup document for a person page.
+        person: Person instance (must have `.identifier.uri` set).
+        session: Shared requests Session for HTTP.
+
+    Side Effects:
+        - Creates the subfolder if needed; writes image files.
+        - Updates `person.picture`.
+    """
     tags = html.find_all("a", class_="js-modal-image")
     if tags:
         identifier = person.identifier.uri.split('/')[-1]
@@ -81,7 +154,19 @@ def get_images(html: BeautifulSoup, person: Person, session: Session):
         print(f"[INFO] {person.name.first} {person.name.last} has no images")
 
 
-def split_names(value: str, person: Person) -> str:
+def split_names(value: str, person: Person):
+    """Split a "Last, First[, Middle...]" string into Person.name fields.
+
+    If a comma is present:
+      - `person.name.last` is set to the text before the first comma.
+      - `person.name.first` is set to the text after the first comma
+        (additional tokens are concatenated without extra commas).
+    If no comma is present, `person.name.full` is set to the original string.
+
+    Args:
+        value: Raw name value (usually from <title>).
+        person: Person instance to mutate.
+    """
     names = value.split(',')
     if len(names) > 1:
         person.name.first = names[1].strip()
@@ -93,7 +178,22 @@ def split_names(value: str, person: Person) -> str:
     else:
         person.name.full = value
 
+
 def create_svm_person(html: BeautifulSoup, person: Person, session: Session):
+    """Populate a Person instance from an SVM composer detail page.
+
+    Steps:
+        1) Extract the name from the <title> text (before the first '|') and
+           feed it into `split_names(...)`.
+        2) Extract the life event block from <div class="text-xl"> and pass it
+           to `get_life_events(...)`.
+        3) Discover and download images with `get_images(...)`.
+
+    Args:
+        html: Parsed BeautifulSoup document.
+        person: Newly created Person instance to fill.
+        session: Shared requests Session for HTTP.
+    """
     names = html.title.string.split('|')[0].strip()
     split_names(names, person)
     date = html.find("div", class_="text-xl")
@@ -104,6 +204,20 @@ def create_svm_person(html: BeautifulSoup, person: Person, session: Session):
 
 
 def get_data_svm():
+    """Main crawl loop: read URLs, scrape each, collect Person objects.
+
+    Reads the text file given in `TEXTFILE` (one URL per line, UTF-8). For each
+    URL:
+        - Fetch page content via a shared `requests.Session`.
+        - Parse with BeautifulSoup.
+        - Create and populate a `Person` with `create_svm_person(...)`.
+        - Append it to the `persons` list.
+        - Sleep 2 seconds (politeness).
+
+    Side Effects:
+        - Mutates the global `persons` list.
+        - Performs network requests and file I/O (image downloads).
+    """
     with open(TEXTFILE, 'r', encoding='utf-8') as file:
         with Session() as session:
             for url in file:
@@ -119,5 +233,7 @@ def get_data_svm():
 
 
 if __name__ == '__main__':
+    # This runs the crawl and
+    # writes the final CSV to the path provided as argv[2]`.
     get_data_svm()
     write_csv(OUTPUT, persons)

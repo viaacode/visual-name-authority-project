@@ -1,4 +1,16 @@
-"""Script to download XML-files from the OAI-PMH server of KBR"""
+"""Download paged XML records from the KBR OAI-PMH server.
+
+This script issues repeated OAI-PMH `ListRecords` requests against
+`https://opac.kbr.be/oaiserver.ashx` using a known resumption token pattern
+(`!!AUTHOR!<offset>!492043!oai_dc`) and writes each response to a separate
+pretty-printed XML file in `FOLDER`.
+
+Notes:
+    - The resumption token is constructed, not read from the server responses.
+      If KBR changes its token format, adjust the pattern accordingly.
+    - Files are written as UTF-8 with indentation via `xml.dom.minidom`.
+    - Network errors or invalid XML will raise exceptions unless handled by the caller.
+"""
 
 import xml.dom.minidom
 import requests
@@ -9,9 +21,9 @@ FOLDER = 'path/to/my_folder' # change this
 
 session = requests.Session()
 for page in range(0,492100,100):
-    token = f"!!AUTHOR!{page}!492043!oai_dc"
-    url = f"{DOMAIN}?verb={OAI_VERB}&resumptionToken={token}"
-    response = session.get(url, timeout=60)
+    TOKEN = f"!!AUTHOR!{page}!492043!oai_dc"
+    URL = f"{DOMAIN}?verb={OAI_VERB}&resumptionToken={TOKEN}"
+    response = session.get(URL, timeout=60)
     response.encoding = response.apparent_encoding
     xml_data = xml.dom.minidom.parseString(response.text)
 
