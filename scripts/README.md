@@ -284,3 +284,108 @@ python clean_photos.py --subdirectories /path/to/photos.txt
 
 * **Unreadable/corrupt images** → removed.
 * **Missing files** → skipped with a warning.
+
+Absolutely — here’s a copy-pasteable **README.md** for `parse_odis.py`, plus clear, Google-style **docstrings** you can drop straight into the script. I’m not changing behavior; this only documents what’s there.
+
+---
+
+# README.md
+
+## ODIS JSON → VNA CSV Converter
+
+`parse_odis.py` converts agent/person records exported from **ODIS** (Onderzoekssteunpunt en Databank Intermediaire Structuren) in JSON format into a **Visual Name Authority (VNA)**-compatible CSV, using the shared utilities from `scripts.person`.
+
+### What it extracts
+
+For each ODIS agent object in the JSON:
+
+- **Identifiers**
+  - `Person.identifier.uri` ← top-level `URL`
+  - `Person.identifier.odis` ← f`"{RUBRIEK}_{ID}"`
+  - **External authorities** from each `STEEKKAART.PS_BIJLAGEN[]`:
+    - VIAF → (numeric part derived from the URL; see note below)
+    - Wikidata → QID from URL
+    - DBNL → ID from URL query param
+- **Names**
+  - From each `STEEKKAART.PS_NAMEN[]`:
+    - Items with `NAAMSOORT` containing `"voornaam"` → `Person.name.first` (concatenated)
+    - Items with `NAAMSOORT` containing `"familienaam"` → the first becomes `Person.name.last`; the rest are appended to `Person.name.alias`
+    - All other `NAAMSOORT` values → appended to `Person.name.alias`
+- **Birth / Death**
+  - `STEEKKAART.PS_GEBOORTEPLAATS`, `STEEKKAART.PS_GEBOORTEDATUM`
+  - `STEEKKAART.PS_OVERLIJDENSPLAATS`, `STEEKKAART.PS_OVERLIJDENSDATUM`
+- **Pictures**
+  - From `STEEKKAART.PS_ILLUSTRATIES[]`: the code appends `"ID: <ID>"` (comma-separated) to `Person.picture`
+
+Finally, the script writes a CSV using `scripts.person.write_csv(OUTPUT, persons)`, which emits the VNA header and column order defined by your project.
+
+---
+
+## Requirements
+
+- **Python** 3.9+ (recommended)
+- Local project module `scripts.person` resolvable from the repository root (the script prepends `Path(__file__).parents[2]` to `sys.path`)
+
+Install project deps as you normally do for this repo.
+
+---
+
+## Input JSON shape (essential fields)
+
+A simplified example of the structure the script expects:
+
+```json
+[
+  {
+    "URL": "https://odis.be/xyz/123",
+    "RUBRIEK": "AGENT",
+    "ID": "123",
+    "OMSCHRIJVING": "Full display name",
+    "STEEKKAART": [
+      {
+        "PS_NAMEN": [
+          {"NAAMSOORT": "voornaam", "NAAM": "Jan"},
+          {"NAAMSOORT": "familienaam", "NAAM": "Peeters"},
+          {"NAAMSOORT": "alias", "NAAM": "J. Peeters"}
+        ],
+        "PS_GEBOORTEPLAATS": "Antwerpen",
+        "PS_GEBOORTEDATUM": "1901-01-01",
+        "PS_OVERLIJDENSPLAATS": "Brussel",
+        "PS_OVERLIJDENSDATUM": "1977-03-14",
+        "PS_ILLUSTRATIES": [{"ID": "IMG-001"}],
+        "PS_BIJLAGEN": [
+          {"B_LINKTXT": "Wikidata", "B_URL": "https://www.wikidata.org/wiki/Q42"},
+          {"B_LINKTXT": "Virtual International Authority File (VIAF)", "B_URL": "https://viaf.org/viaf/44300636/"},
+          {"B_LINKTXT": "Digitale Bibliotheek voor de Nederlandse Letteren", "B_URL": "https://www.dbnl.org/auteurs/auteur.php?id=mult002"}
+        ]
+      }
+    ]
+  }
+]
+```
+
+---
+
+## Usage
+
+```bash
+python parse_odis.py /absolute/path/to/odis.json /absolute/path/to/output.csv
+```
+
+- `argv[1]` → input JSON file path (`FILE`)
+- `argv[2]` → output CSV path (`OUTPUT`)
+
+The script will iterate all top-level records and write the CSV using the VNA header/order from `scripts.person.write_csv`.
+
+---
+
+## Notes & caveats
+
+- **Name logic** is simple and string-based:
+  - “voornaam” → first names, concatenated with spaces
+  - “familienaam” → the first is `last`; the remainder go to `alias`
+  - any other `NAAMSOORT` → appended to `alias`
+- **VIAF mapping**: the code assigns `person.viaf = identifier`. If your `Person` dataclass stores VIAF under `person.identifier.viaf` (typical in this repo), you may want to adapt that assignment in the code. (Documentation here simply reflects current behavior.)
+- **Pictures**: `PS_ILLUSTRATIES[].ID` values are concatenated into `person.picture` as `"ID: <ID>"`, comma-separated.
+- **Multiple “steekkaarten”**: the script processes each one and keeps appending/overwriting fields on the same `Person`. This matches the current implementation.
+- **String cleanup** uses `beautify_string` to trim whitespace and trailing commas.

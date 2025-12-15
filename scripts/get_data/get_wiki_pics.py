@@ -110,6 +110,6 @@ if __name__ == '__main__':
 
                 print("done\n")
 
-    # Clean up Pywikibot artifacts in the CWD:
+    # Clean up Pywikibot artifacts in the current working directory:
     shutil.rmtree('apicache')
     os.remove('throttle.ctrl')

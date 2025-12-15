@@ -1,4 +1,9 @@
-"""Module for reading and writing JSON"""
+"""Convert ODIS person JSON to a VNA-formatted CSV.
+
+Reads an ODIS export (list of agent records), builds `scripts.person.Person`
+objects by mapping names, birth/death data, pictures, and external authorities,
+and writes all persons with `write_csv(OUTPUT, persons)`.
+"""
 import json
 from typing import List
 from sys import path, argv
@@ -32,6 +37,25 @@ FILE = argv[1]
 OUTPUT = argv[2]
 
 def get_person_data(json_data: dict) -> Person:
+    """Build a Person from a single ODIS agent object.
+
+    Populates:
+        - identifier.uri from top-level 'URL'
+        - identifier.odis from "<RUBRIEK>_<ID>"
+        - name.full from 'OMSCHRIJVING'
+        - name.first/last/alias from each STEEKKAART.PS_NAMEN[]
+        - birth/death (place/date) from STEEKKAART.{PS_GEBOORTEPLAATS,
+          PS_GEBOORTEDATUM, PS_OVERLIJDENSPLAATS, PS_OVERLIJDENSDATUM}
+        - picture as a comma-separated list of 'ID: <ID>' from
+          STEEKKAART.PS_ILLUSTRATIES[]
+        - external authorities via `parse_authorities(...)`
+
+    Args:
+        json_data: A dict representing one agent/person record from ODIS.
+
+    Returns:
+        Person: A fully-populated Person instance for the record.
+    """
     person = Person()
     person.identifier.uri = f"{json_data[JSON_KEY_NAMES['URI']]}"
     person.identifier.odis = f"{json_data['RUBRIEK']}_{json_data['ID']}"
@@ -60,6 +84,21 @@ def get_person_data(json_data: dict) -> Person:
     return person
 
 def parse_names(person: Person, names: List[dict]) -> None:
+    """Map ODIS name parts to Person.name fields.
+
+    Rules:
+        - If NAAMSOORT contains 'voornaam'  → append NAAM to person.name.first
+        - If NAAMSOORT contains 'familienaam':
+            * First occurrence becomes person.name.last
+            * Additional family names are appended to person.name.alias
+        - Otherwise → NAAM is appended to person.name.alias
+
+    Trailing spaces/commas are removed with `beautify_string`.
+
+    Args:
+        person: Target Person to mutate.
+        names:  List of name dicts with keys NAAMSOORT and NAAM.
+    """
     lastnames = []
     for name in names:
         naamsoort = name['NAAMSOORT']
@@ -82,13 +121,25 @@ def parse_names(person: Person, names: List[dict]) -> None:
     person.name.alias = beautify_string(person.name.alias)
 
 def parse_authorities(person: Person, authorities: List[dict]) -> None:
+    """Extract external IDs (VIAF, Wikidata, DBNL) from ODIS 'bijlagen'.
+
+    Behavior:
+        - VIAF: take the numeric ID from the URL (second-to-last path segment)
+                and assign to `person.identifier.viaf`.
+        - Wikidata: set `person.identifier.wikidata` using QID parsed from the URL.
+        - DBNL: set `person.identifier.dbnl` using the 'id=' query parameter.
+
+    Args:
+        person: Target Person to update.
+        authorities: List of attachment dicts with 'B_LINKTXT' and 'B_URL'.
+    """
     for authority in authorities:
         authority_type = authority['B_LINKTXT']
         authority_url = authority['B_URL']
         if authority_type:
             if authority_type == AUTHORITIES['VIAF']:
                 identifier = authority_url.split('/')[-2]
-                person.viaf = identifier
+                person.identifier.viaf = identifier
             if authority_type == AUTHORITIES['WIKIDATA']:
                 person.identifier.wikidata = get_wikidata_id(authority_url)
             if authority_type.strip() == AUTHORITIES['DBNL']:
@@ -96,12 +147,9 @@ def parse_authorities(person: Person, authorities: List[dict]) -> None:
 
 # main
 if __name__ == "__main__":
-
     persons = []
-
     with open(FILE, "r", encoding='utf-8') as json_file:
         data = json.load(json_file)
         for agent in data:
             persons.append(get_person_data(agent))
-
     write_csv(OUTPUT, persons)
