@@ -1,122 +1,118 @@
-"""Module for parsing person data for Visual Name Authority"""
+"""Data model and CSV export helpers for Visual Name Authority (VNA).
+
+Defines light dataclasses to represent a person (name, birth/death events,
+identifiers, etc.), plus a CSV writer that emits rows in the standard VNA
+column order. Also includes small helpers to extract common external IDs
+(Wikidata, DBNL, VIAF) from their canonical URLs.
+"""
 
 from typing import List
 from csv import writer
 from dataclasses import dataclass, field
 
+
+# ----------------------------------------------
+# Dataclasses
+# ----------------------------------------------
+
 @dataclass
 class Name():
 
     """
-    Class for storing all kinds of names of a person.
+    Class for personal name fields.
 
     Attributes:
-        first (str): First name of a person.
-        last (str): Last name of a person.
-        full (str): Full name of a person. Is mostly a combination of the first and last name
-        alias (str): Identifier from RKD.
+        first (str): Given name(s).
+        last (str): Family name(s).
+        full (str): Full display name (often "{first} {last}", but not enforced).
+        alias (str): Alternate/other name label to export (free text).
     """
 
     first: str = ""
     last: str = ""
-    full: str = ""  # mss hier {first} {last} van maken en werken met Name objecten?
-    alias: str = "" # misschien hier met een alias object werken?
+    full: str = ""
+    alias: str = ""
 
 @dataclass
 class Alias:
-    """
-    Class for storing data of an alias or alternative name(s) of a person.
+    """Structured representation of an alternate name.
 
     Attributes:
-        first (str): The first name(s) of the alias.
-        last (str): The last name(s) of the alias.
+        first: Given name(s) of the alias.
+        last: Family name(s) of the alias.
     """
-    first: str = ''
-    last: str = ''
+    first: str = ""
+    last: str = ""
 
     def get_alias(self) -> str:
-        """Returns the alternative name of a person."""
-        return self.first + ' ' + self.last
+        """Return the alias as a single string: 'first last'."""
+        return self.first + " " + self.last
 
 @dataclass
-class Event():
-
-    """
-   Class for storing data of an event.
-
-        Attributes:
-            place (str): the place where the event took place
-            date (str): the date when the event took place
-    """
-
-    place: str = ''
-    date: str = ''
-
-@dataclass
-class Identifier():
-
-    """
-        A class for storing all kinds of identifiers of a person.
-
-        Attributes:
-            uri (str): a URI as identifier.
-            wikidata (str): Identifier from Wikidata.
-            odis (str): Identifier from ODIS.
-            rkd (str): Identifier from RKD.
-            dbnl (str): Identifier from the Digital Library for Dutch Literature.
-            viaf (str): Identifier from VIAF.
-            isni (str): Identifier from ISNI
-    """
-
-    uri: str = ''
-    wikidata: str = ''
-    odis: str = ''
-    rkd: str = ''
-    dbnl: str = ''
-    viaf: str = ''
-    isni: str = ''
-
-@dataclass
-class Person():
-    """
-    Class representing a person.
+class Event:
+    """Place/date pair for a life event (e.g., birth or death).
 
     Attributes:
-        uri (str): The URI for the person.
-        id (str): The unique identifier for the person.
-        fullname (str): The full name of the person.
-        firstname (str): The first name(s) of the person.
-        lastname (str): The last name(s) of the person.
-        alias (str): Any alias or alternative name(s) of the person.
-        birthdate (str): The date of birth of the person.
-        deathdate (str): The date of death of the person.
-        place_of_birth (str): The place of birth of the person.
-        place_of_death (str): The place of death of the person.
-        sex (str): The sex of the person.
-        occupation (str): The occupation or profession of the person.
-        picture (str): Information about the picture of the person.
-        dbnl (str): Identifier for the person from the Digital Library for Dutch Literature.
-        odis (str): Identifier for the person from ODIS.
-        wikidata (str): Identifier for the person from Wikidata.
-        viaf (str): Identifier for the person from VIAF.
-        rkd (str): Identifier for the person from RKD.
-        isni (str): Identifier for the person from ISNI
+        place: Human-readable place name.
+        date: Event date in ISO format (YYYY-MM-DD) or free text if unknown.
     """
+    place: str = ""
+    date: str = ""
 
+@dataclass
+class Identifier:
+    """External identifiers commonly used in VNA.
+
+    Attributes:
+        uri: Canonical URI for the person in this dataset.
+        wikidata: Wikidata QID (e.g., 'Q42').
+        odis: ODIS identifier.
+        rkd: RKDartists ID (string).
+        dbnl: DBNL author identifier.
+        viaf: VIAF identifier.
+        isni: ISNI identifier.
+    """
+    uri: str = ""
+    wikidata: str = ""
+    odis: str = ""
+    rkd: str = ""
+    dbnl: str = ""
+    viaf: str = ""
+    isni: str = ""
+
+
+@dataclass
+class Person:
+    """Aggregate representation of a person used for VNA export.
+
+    Attributes:
+        id: Local/system identifier for the person (string).
+        name: Name fields (first/last/full/alias).
+        birth: Birth event (place/date).
+        death: Death event (place/date).
+        occupation: Occupation(s) or role(s) as free text.
+        picture: Comma-separated list of picture filenames or URIs.
+        identifier: External identifiers (URI, Wikidata, VIAF, etc.).
+    """
     id: str = ""
     name: Name = field(default_factory=Name)
     birth: Event = field(default_factory=Event)
     death: Event = field(default_factory=Event)
-    occupation: str = ''
-    picture: str = ''
+    occupation: str = ""
+    picture: str = ""
     identifier: Identifier = field(default_factory=Identifier)
 
     def print_properties(self) -> List[str]:
-        """
-        Returns a list of person properties for general use.
+        """Return the person's fields in the standard VNA column order.
+
+        Order:
+            [URI, ID, volledige naam, voornaam, achternaam, alias,
+             geboorteplaats, geboortedatum, sterfplaats, sterfdatum,
+             beroep, DBNL ID, ODIS ID, Wikidata ID, VIAF ID, RKD ID,
+             ISNI ID, foto]
 
         Returns:
-            List[str]: A list containing person properties in a specific order.
+            A list of strings ready to be written as a CSV row.
         """
         return [self.identifier.uri, self.id, self.name.full, self.name.first,
                 self.name.last, self.name.alias, self.birth.place, self.birth.date,
@@ -125,59 +121,104 @@ class Person():
                 self.identifier.rkd, self.identifier.isni, self.picture]
 
 
+# ----------------------------------------------
+# ID extractors
+# ----------------------------------------------
 
 def get_wikidata_id(url: str) -> str:
-    """
-    Extracts the wikidata QID from the Wikidata URI.
+    """Extract the Wikidata QID from a Wikidata URL.
+
+    Example:
+        'https://www.wikidata.org/wiki/Q42' -> 'Q42'
+
+    Args:
+        url: A Wikidata entity URL.
 
     Returns:
-        str: the Wikidata QID.
+        The last path segment (e.g., 'Q42').
     """
-    identifier = url.split('/')[-1]
+    identifier = url.split("/")[-1]
     return identifier
+
 
 def get_dbnl_id(url: str) -> str:
-    """
-    Extracts the DBNL ID from the DBNL URI.
+    """Extract the DBNL ID from a DBNL URL or query string.
+
+    Example:
+        'https://www.dbnl.org/auteurs/auteur.php?id=mult002' -> 'mult002'
+
+    Args:
+        url: A DBNL URL containing an 'id=' parameter.
 
     Returns:
-        str: the DBNL ID.
+        The substring after the last '=' character.
     """
-    identifier = url.split('=')[-1]
+    identifier = url.split("=")[-1]
     return identifier
 
+
 def get_viaf_id(url: str) -> str:
-    """
-    Extracts the VIAF ID from the VIAF URI.
+    """Extract the VIAF numeric ID from a VIAF URL.
+
+    Example:
+        'https://viaf.org/viaf/44300636/' -> '44300636'
+
+    Args:
+        url: A VIAF URL.
 
     Returns:
-        str: the Wikidata QID.
+        The last path segment if it consists only of digits; otherwise an
+        empty string.
     """
-    identifier = url.split('/')[-1].strip()
+    identifier = url.split("/")[-1].strip()
     if identifier.isdigit():
         return identifier
     return ""
 
+
+# ----------------------------------------------
+# String cleanup
+# ----------------------------------------------
+
 def beautify_string(value: str) -> str:
-    """
-    Returns a string where leading and trailing whitespaces and commas are removed
+    """Trim whitespace and remove a single trailing comma.
+
+    Args:
+        value: Input string.
+
+    Returns:
+        The cleaned string (leading/trailing spaces removed; if the string
+        ends with ',', that comma is dropped).
     """
     value = value.strip()
-    if value.endswith(','):
+    if value.endswith(","):
         value = value[:-1]
     return value
 
-def write_csv(filename, persons: List[Person]):
-    """
-    Writes all data of a person in a CSV, 
-    following the Visual Name Authority CSV fomat.
+
+# ----------------------------------------------
+# CSV writer
+# ----------------------------------------------
+
+def write_csv(filename: str, persons: List[Person]):
+    """Write a list of Person objects as a VNA-formatted CSV.
+
+    The header and column order match `Person.print_properties()`.
+
+    Args:
+        filename: Output CSV path.
+        persons: Iterable of Person instances to write.
+
+    Returns:
+        None. The file is written with UTF-8 encoding and newline='' to avoid
+        extra blank lines on Windows.
     """
     with open(filename, 'w', newline='', encoding='utf-8') as csv_file:
         csv_writer = writer(csv_file)
-        header = ['URI', 'ID', 'volledige naam', 'voornaam', 'achternaam', 'alias', 
-                  'geboorteplaats', 'geboortedatum', 'sterfplaats', 
-                    'sterfdatum', 'beroep', 'DBNL ID', 'ODIS ID', 'Wikidata ID', 'VIAF ID', 
-                    'RKD ID', 'ISNI ID', 'foto']
+        header = ['URI', 'ID', 'volledige naam', 'voornaam', 'achternaam', 'alias',
+                  'geboorteplaats', 'geboortedatum', 'sterfplaats',
+                  'sterfdatum', 'beroep', 'DBNL ID', 'ODIS ID', 'Wikidata ID', 'VIAF ID',
+                  'RKD ID', 'ISNI ID', 'foto']
         csv_writer.writerow(header)
         for person in persons:
             csv_writer.writerow(person.print_properties())

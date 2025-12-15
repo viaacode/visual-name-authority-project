@@ -1,3 +1,62 @@
+# Classes
+
+## person.py — Data model and CSV export for Visual Name Authority
+
+This module defines lightweight data classes to represent a person and related metadata in the Visual Name Authority (VNA) project, plus small helpers to extract IDs from well-known identifier URLs and to export a list of people to a VNA-compatible CSV.
+
+### What’s inside
+
+* **Data classes**
+  * `Name` — first/last/full name and an optional alias string
+  * `Alias` — (optional) first/last components of an alternate name
+  * `Event` — a place/date pair (used for birth and death)
+  * `Identifier` — common external IDs (URI, Wikidata, ODIS, RKD, DBNL, VIAF, ISNI)
+  * `Person` — aggregates the objects above and exposes print_properties() in the VNA column order
+* **Helpers**
+  * `get_wikidata_id(url)` → `"Q…"`, last path segment
+  * `get_dbnl_id(url)` → value after the last `"="`
+  * `get_viaf_id(url)` → last path segment if numeric, otherwise `""`
+  * `beautify_string(value)` → trims whitespace, drops trailing comma
+* **Export**
+  * `write_csv(filename, persons)` — writes a CSV with the standard VNA header
+
+### CSV schema produced by write_csv
+
+Header (exact order):
+```
+URI,ID,volledige naam,voornaam,achternaam,alias,geboorteplaats,geboortedatum,
+sterfplaats,sterfdatum,beroep,DBNL ID,ODIS ID,Wikidata ID,VIAF ID,RKD ID,ISNI ID,foto
+```
+
+Each row is produced by `Person.print_properties()`.
+
+### Minimal example
+
+```python
+from person import Person, Name, Event, Identifier, write_csv
+
+p = Person()
+p.id = "123"
+p.name = Name(first="Marie", last="Curie", full="Marie Curie", alias="")
+p.birth = Event(place="Warsaw", date="1867-11-07")
+p.death = Event(place="Passy", date="1934-07-04")
+p.occupation = "Physicist; Chemist"
+p.identifier = Identifier(
+    uri="https://example.org/person/123",
+    wikidata="Q7186",
+    viaf="44300636",
+    isni="0000000121032683",
+)
+
+write_csv("people.csv", [p])
+```
+
+### Notes
+
+* `Person.print_properties()` defines the exact column order used by write_csv.
+* `get_viaf_id()` returns an empty string if the last path segment is not numeric.
+* The `Alias` class is available for projects that store richer alias data, but the current CSV export uses the simple `Name.alias` string.
+
 # Scripts
 
 ## clean_photos_by_faces.py — Face-based Portrait / Group / Empty Classifier (OpenCV Haar)

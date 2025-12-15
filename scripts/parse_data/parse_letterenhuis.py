@@ -1,4 +1,11 @@
-"""Module for parsing the XML-files of Letterenhuis and convert the data to the VNA CSV-format"""
+"""Parse Letterenhuis XML authority records and export to VNA CSV.
+
+For each XML file in the folder specified by the `LETTERENHUIS_FOLDER`
+environment variable, extract name (main and aliases), dates of existence,
+places of birth/death, occupation notes, external identifiers, and an
+optional picture URL. Map values onto `scripts.person.Person` and write a
+VNA-formatted CSV via `write_csv`.
+"""
 
 import xml.etree.ElementTree as ET
 import os
@@ -28,13 +35,24 @@ persons = []
 
 # methods
 def set_names(person: Person, root: ET.Element) -> None:
-    """
-    Parses a person's name data in the Letterenhuis XML and stores the 
-    data in a person object
+    """Populate main name and aliases from the <Names> group.
 
-        Parameters:
-        person (Person): A person object
-        root (Element): The root element of an XML file
+    Behavior:
+        - A <Names> element WITHOUT <Qualifier> is treated as the main name:
+          * First name: RestOfName
+          * Last name:  PrimaryName
+          * Suffix (if present) is appended to the first name with a space.
+        - A <Names> element WITH <Qualifier> is treated as an alias and
+          contributes "First [Suffix] Last" to `person.name.alias` as a
+          comma-separated list.
+
+    Args:
+        person: Target Person instance to mutate.
+        root:   Parsed XML root element of a single record.
+
+    Side Effects:
+        - Mutates `person.name.first`, `person.name.last`, and
+          `person.name.alias` (comma-separated).
     """
     for name in root.findall('Names'):
         if name.find('Qualifier').text is None:
@@ -59,15 +77,22 @@ def set_names(person: Person, root: ET.Element) -> None:
 
     if person.name.alias.endswith(','):
         person.name.alias = person.name.alias[:-1]
-        
-def set_dates(person: Person, root: ET.Element) -> None:
-    """
-    Parses a person's date of existence data in the Letterenhuis XML and stores the 
-    data in a person object
 
-        Parameters:
-        person (Person): A person object
-        root (Element): The root element of an XML file
+def set_dates(person: Person, root: ET.Element) -> None:
+    """Populate birth and death dates from <DatesOfExistence>.
+
+    Behavior:
+        - Prefer StructuredDateRange:
+            BeginDateStandardized → person.birth.date
+            EndDateStandardized   → person.death.date
+        - Else, use StructuredDateSingle with DateRole 'begin' or 'end'.
+
+    Args:
+        person: Target Person instance to mutate.
+        root:   Parsed XML root element of a single record.
+
+    Side Effects:
+        - Mutates `person.birth.date` and/or `person.death.date` when present.
     """
     dates = root.find('DatesOfExistence')
     if dates:
@@ -89,13 +114,20 @@ def set_dates(person: Person, root: ET.Element) -> None:
                     person.death.date = date
 
 def set_user_places(person: Person, root: ET.Element) -> None:
-    """
-    Parses a person's place data in the Letterenhuis XML and stores the 
-    data in a person object
+    """Populate birth and death places from <AgentPlaces>.
 
-        Parameters:
-        person (Person): A person object
-        root (Element): The root element of an XML file
+    Behavior:
+        - For each <AgentPlaces>, read <PlaceRole>:
+            'place_of_birth' → person.birth.place
+            'place_of_death' → person.death.place
+        - Place label is read from <Subjects>/<Ref>.
+
+    Args:
+        person: Target Person instance to mutate.
+        root:   Parsed XML root element of a single record.
+
+    Side Effects:
+        - Mutates `person.birth.place` / `person.death.place` when present.
     """
     places = root.findall('AgentPlaces')
     for place in places:
@@ -106,13 +138,20 @@ def set_user_places(person: Person, root: ET.Element) -> None:
             person.birth.place = place.find('Subjects').find('Ref').text
 
 def set_occupation(person: Person, root: ET.Element) -> None:
-    """
-    Parses a person's occupation data in the Letterenhuis XML and stores the 
-    data in a person object
+    """Aggregate occupation notes into a single comma-separated string.
 
-        Parameters:
-        person (Person): A person object
-        root (Element): The root element of an XML file
+    Behavior:
+        - For each <AgentOccupations>, read Notes/Content/String and append
+          to `person.occupation`, separated by commas.
+        - Remove a trailing comma if present.
+        - Replace literal '\\r\\n' with commas.
+
+    Args:
+        person: Target Person instance to mutate.
+        root:   Parsed XML root element of a single record.
+
+    Side Effects:
+        - Mutates `person.occupation`.
     """
     occupations = root.findall('AgentOccupations')
     if occupations:
@@ -126,20 +165,39 @@ def set_occupation(person: Person, root: ET.Element) -> None:
     person.occupation = person.occupation.replace("\\r\\n", ",")
 
 def find_id(value: str) -> str:
-    """Returns the extenal identifier in a string"""
+    """Return an external identifier parsed from a URL-like string.
+
+    If the value contains '?', the identifier is the substring after the
+    last '='. Otherwise it is the substring after the last '/'.
+
+    Args:
+        value: URL or URL-like string.
+
+    Returns:
+        The extracted identifier string.
+    """
+
     if '?' in value:
         return value.split('=')[-1]
     return value.split('/')[-1]
 
 def set_external_identifiers(person: Person, root: ET.Element) -> None:
-    """
-    Parses a person's external identifiers data in the Letterenhuis XML and stores the 
-    data in a person object
+    """Populate picture URL and external IDs from <ExternalDocuments>.
 
-        Parameters:
-        person (Person): A person object
-        root (Element): The root element of an XML file
+    Behavior:
+        - If Title contains 'dams.antwerpen.be', treat Location as a picture
+          URL and assign to `person.picture`.
+        - Else map Title to one of {dbnl, odis, wikidata, viaf, rkd} and
+          extract an identifier from Location using `find_id`.
+
+    Args:
+        person: Target Person instance to mutate.
+        root:   Parsed XML root element of a single record.
+
+    Side Effects:
+        - Mutates `person.picture` and fields on `person.identifier`.
     """
+
     docs = root.findall('ExternalDocuments')
     for doc in docs:
         doc_type = doc.find('Title').text
@@ -161,14 +219,24 @@ def set_external_identifiers(person: Person, root: ET.Element) -> None:
                     person.identifier.rkd = identifier
 
 def parse_xml(file: str) -> Person:
-    """
-    Return all data of a person found in a Letterenhuis XML file.
+    """Parse one Letterenhuis XML file into a Person (if agent_person).
 
-        Parameters:
-            file (str): the filepath of the XML file
+    Steps:
+        1) Parse XML and check <JsonmodelType>. Only 'agent_person' is handled.
+        2) Call:
+            - set_names
+            - set_dates
+            - set_user_places
+            - set_occupation
+            - set_external_identifiers
+        3) Assign the record URI (root/<URI>) to the Person instance.
 
-        Returns:
-            person (Person): a person object
+    Args:
+        file: Filesystem path to a single XML file.
+
+    Returns:
+        A Person instance populated from the file if `agent_person`;
+        otherwise None (implicit) if the type does not match.
     """
     tree = ET.parse(file)
     root = tree.getroot()
@@ -185,13 +253,13 @@ def parse_xml(file: str) -> Person:
         #beroep
         set_occupation(person, root)
         # URI
-        person.uri = root.find('URI').text
+        person.identifier.uri = root.find('URI').text
         # afbeeldingen en externe identifiers
         set_external_identifiers(person, root)
 
 # main
 if __name__ == "__main__":
-
+    # Processes all .xml files in LETTERENHUIS_FOLDER and writes a VNA CSV.
     for filename in os.listdir(FOLDER):
         print(filename)
         file_path = os.path.join(FOLDER, filename)
