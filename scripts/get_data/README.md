@@ -1,5 +1,15 @@
 # Scripts
 
+## Overview
+
+* [get_amsab_images.py — Download IIIF images of Amsab-ISG (batch from CSV)](#get_amsab_imagespy--download-iiif-images-for-amsab-isg-batch-from-csv)
+* [get_data_kbr.py — KBR OAI-PMH XML Downloader](#get_data_kbrpy--kbr-oai-pmh-xml-downloader)
+* [get_data_svm.py — Crawl SVM composers and export to VNA CSV](#get_data_svmpy--crawl-svm-composers-and-export-to-vna-csv)
+* [get_manifest_images.py — Download images via IIIF manifests](#get_manifest_imagespy--download-images-via-iiif-manifests)
+* [get_pictures_by_url.py — Download images from URLs listed in a CSV](#get_pictures_by_urlpy--download-images-from-urls-listed-in-a-csv)
+* [get_wiki_pics.py — Download files from Wikimedia Commons by CSV (category or single file)](#get_wiki_picspy--download-files-from-wikimedia-commons-by-csv-category-or-single-file)
+
+
 ## get_amsab_images.py — Download IIIF images for Amsab-ISG (batch from CSV)
 
 This script reads a CSV (configured via environment variables), looks up **IIIF manifest URLs** in several columns, and downloads the **image file** referenced by each manifest. Files are written into a per-person subfolder, with filenames derived from paired identifier columns.

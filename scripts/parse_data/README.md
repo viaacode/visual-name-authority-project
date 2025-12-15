@@ -1,5 +1,14 @@
 # Scripts for parsindg data
 
+## Overview
+
+* [extract_rights_wikitext.py — Extract author and license from Wikimedia Commons Wikitext](#extract_rights_wikitextpy--extract-author-and-license-from-wikimedia-commons-wikitext)
+* [parse_avg.py - AVG XML → VNA CSV Converter](#parse_avgpy---avg-xml--vna-csv-converter)
+* [parse_letterenhuis.py - Letterenhuis XML → VNA CSV Converter](#parse_letterenhuispy---letterenhuis-xml--vna-csv-converter)
+* [parse_memorialis.py - UGent Memorialis → VNA CSV Converter](#parse_memorialispy---ugent-memorialis--vna-csv-converter)
+* [parse_odis.py - ODIS JSON → VNA CSV Converter](#parse_odispy---odis-json--vna-csv-converter)
+* [parse_pictures_boekentoren.py - Boekentoren portrait parser → CSV](#parse_pictures_boekentorenpy---boekentoren-portrait-parser--csv)
+
 ## extract_rights_wikitext.py — Extract `author` and `license` from Wikimedia Commons Wikitext
 
 This script reads a CSV file with a column named `Wikitext`, parses the wikitext using **mwparserfromhell**, and extracts:
