@@ -1,10 +1,12 @@
-# Classes
+# VNA scripts (and datamodel)
 
-## person.py — Data model and CSV export for Visual Name Authority
+## Classes
+
+### person.py — Data model and CSV export for Visual Name Authority
 
 This module defines lightweight data classes to represent a person and related metadata in the Visual Name Authority (VNA) project, plus small helpers to extract IDs from well-known identifier URLs and to export a list of people to a VNA-compatible CSV.
 
-### What’s inside
+#### What’s inside
 
 * **Data classes**
   * `Name` — first/last/full name and an optional alias string
@@ -20,7 +22,7 @@ This module defines lightweight data classes to represent a person and related m
 * **Export**
   * `write_csv(filename, persons)` — writes a CSV with the standard VNA header
 
-### CSV schema produced by write_csv
+#### CSV schema produced by write_csv
 
 Header (exact order):
 ```
@@ -30,7 +32,7 @@ sterfplaats,sterfdatum,beroep,DBNL ID,ODIS ID,Wikidata ID,VIAF ID,RKD ID,ISNI ID
 
 Each row is produced by `Person.print_properties()`.
 
-### Minimal example
+#### Minimal example
 
 ```python
 from person import Person, Name, Event, Identifier, write_csv
@@ -51,15 +53,15 @@ p.identifier = Identifier(
 write_csv("people.csv", [p])
 ```
 
-### Notes
+#### Notes
 
 * `Person.print_properties()` defines the exact column order used by write_csv.
 * `get_viaf_id()` returns an empty string if the last path segment is not numeric.
 * The `Alias` class is available for projects that store richer alias data, but the current CSV export uses the simple `Name.alias` string.
 
-# Scripts
+## Scripts
 
-## clean_photos_by_faces.py — Face-based Portrait / Group / Empty Classifier (OpenCV Haar)
+### clean_photos_by_faces.py — Face-based Portrait / Group / Empty Classifier (OpenCV Haar)
 
 This scripts reads a **text file with one image path per line**, detects faces on CPU using **OpenCV’s Haar cascades**, and moves the images into category folders:
 
@@ -71,13 +73,13 @@ It also writes a summary CSV named `cleanup_portrets.csv`.
 
 > Haar cascades are lightweight and fast on CPU, but less accurate than modern DNNs. For higher accuracy, consider switching to OpenCV DNN (ResNet-SSD).
 
-### Requirements
+#### Requirements
 
 * **Python** 3.9+ (recommended)
 * **Packages:**
   * `opencv-python`
 
-### Install:
+#### Install:
 
 All dependencies should already be installed if you followed the main README of this repository.
 
@@ -87,7 +89,7 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install opencv-python
 ```
 
-### Input format
+#### Input format
 
 Provide a **UTF-8** text file with **exactly one path per line**.
 
@@ -96,7 +98,7 @@ Provide a **UTF-8** text file with **exactly one path per line**.
 * Surrounding single/double quotes are stripped (e.g., from CSV/Excel exports).
 * BOM (`utf-8-sig`) is supported.
 
-#### Example `photos.txt`
+##### Example `photos.txt`
 
 ```bash
 ./data/photos/img001.jpg
@@ -108,12 +110,12 @@ To create a text file with exactly one path per line, you can use this command (
 * pictures not stored in subidirectores: `realpath path/to/folder/with/photos/*`
 * pictures stored in subdirectories: `realpath path/to/folder/with/photos/*/*`
 
-### Output
+#### Output
 
 * Summary CSV with columns `filename`, `location` and `num_faces`
 * Images are moved in directories `empty`, `group` and `portret`
 
-#### Structure classified images
+##### Structure classified images
 
 * **Without** `--subdirectories`
   Files go directly under the category folder:
@@ -146,13 +148,13 @@ To create a text file with exactly one path per line, you can use this command (
   cleanup_portrets.csv
 ```
 
-### Usage
+#### Usage
 
 ```bash
 python clean_photos_by_faces.py /path/to/photos.txt
 ```
 
-### Arguments
+#### Arguments
 
 * `source_file` (positional): Text file with one image path per line.
 * `--subdirectories`: Preserve the image’s **immediate parent folder** under each category (i.e., `portrets/<parent>/…`).
@@ -161,7 +163,7 @@ python clean_photos_by_faces.py /path/to/photos.txt
   * without `--subdirectories`: the directory of the **first** image is used.
 
 
-### Workflow
+#### Workflow
 
 1. Reads image paths from `source_file`.
 2. Determines the **output root** and ensures the classification directories exist: `portrets/`, `empty/`, `group/`.
@@ -173,7 +175,7 @@ python clean_photos_by_faces.py /path/to/photos.txt
    * Logs a row for the summary CSV.
 5. Writes `cleanup_portrets.csv` in the output root.
 
-### Detection settings (in code)
+#### Detection settings (in code)
 
 At the top of the script:
 
@@ -190,17 +192,17 @@ Tuning tips:
 * Increase `MIN_NEIGHBORS` to reduce false positives (potentially missing some true faces).
 * Lower `SCALE_FACTOR` (e.g., 1.05) to find more faces at the cost of speed.
 
-### Troubleshooting
+#### Troubleshooting
 * “Cannot load cascade” → Ensure OpenCV is installed and `cv2.data.haarcascades` contains `haarcascade_frontalface_default.xml`.
 * “Unreadable image” → The file may be corrupt or not an image format OpenCV can read.
 * Nothing moves → Check that the input paths are correct and accessible (absolute/relative).
 
-### Notes & possible improvements
+#### Notes & possible improvements
 * Haar cascades are fast but **less accurate** than modern detectors. For better accuracy (still CPU-friendly), switch to **OpenCV DNN (ResNet-SSD)** and add a confidence threshold; faces ≥ 100×100 px can be enforced the same way.
 
-## clean_photos.py - Portrait / Group / Empty Classifier
+### clean_photos_old.py - Portrait / Group / Empty Classifier
 
-### Overview
+#### Overview
 
 An improved version of this script is `clean_photos_by_faces.py`. 
 
@@ -212,7 +214,7 @@ An improved version of this script is `clean_photos_by_faces.py`.
 
 It also writes a summary CSV: `cleanup_portrets.csv`.
 
-### Requirements
+#### Requirements
 
 * **Python** 3.9+ (recommended)
 * **Packages:**
@@ -222,7 +224,7 @@ It also writes a summary CSV: `cleanup_portrets.csv`.
 
 > ⚠️ Detectron2 installation varies by OS and PyTorch build. Follow the official Detectron2 install guide for your environment.
 
-### Installation
+#### Installation
 
 Packages are already installed if you followed the main README of this repository.
 
@@ -235,41 +237,41 @@ pip install opencv-python
 pip install 'git+https://github.com/facebookresearch/detectron2.git'
 ```
 
-### Input format (important)
+#### Input format (important)
 
 Provide a **UTF-8** text file with **exactly one path per line**:
 * Blank lines and lines starting with `#` or `;` are ignored.
 * A simple header like `filename` or `path` on the **first line** is ignored.
 * Surrounding single/double quotes are stripped.
 
-#### Example (`photos.txt`)
+##### Example (`photos.txt`)
 ```bash
 /data/photos/img001.jpg
 /data/photos/img002.jpg
 /data/photos/subdir/img003.png
 ```
 
-### Output
+#### Output
 
 * Images are **moved** (not copied) into `portrets/`, `empty/`, or `group/`.
 * A summary CSV `cleanup_portrets.csv` at the output root with columns filename, location and num_faces
 
-### Usage
+#### Usage
 
 ```bash
 python clean_photos.py --subdirectories /path/to/photos.txt 
 ```
 
-#### Positional arguments
+##### Positional arguments
 
 * `source_file` — path to your text file
 
-#### Options
+##### Options
 * `--subdirectories`: when images are ordered in subdirectories
 * `--threshold FLOAT` — detection score threshold (default 0.7)
 * `--output-root PATH` — explicit output directory (default: derived from first image)
 
-### Workflow
+#### Workflow
 
 1. Read paths line-by-line from the input file.
 2. Load Detectron2 COCO-Keypoints model.
@@ -280,112 +282,9 @@ python clean_photos.py --subdirectories /path/to/photos.txt
     * Append a row to the summary
 4. Write `cleanup_portrets.csv` in the output directory.
 
-### Error handling
+#### Error handling
 
 * **Unreadable/corrupt images** → removed.
 * **Missing files** → skipped with a warning.
 
 Absolutely — here’s a copy-pasteable **README.md** for `parse_odis.py`, plus clear, Google-style **docstrings** you can drop straight into the script. I’m not changing behavior; this only documents what’s there.
-
----
-
-# README.md
-
-## ODIS JSON → VNA CSV Converter
-
-`parse_odis.py` converts agent/person records exported from **ODIS** (Onderzoekssteunpunt en Databank Intermediaire Structuren) in JSON format into a **Visual Name Authority (VNA)**-compatible CSV, using the shared utilities from `scripts.person`.
-
-### What it extracts
-
-For each ODIS agent object in the JSON:
-
-- **Identifiers**
-  - `Person.identifier.uri` ← top-level `URL`
-  - `Person.identifier.odis` ← f`"{RUBRIEK}_{ID}"`
-  - **External authorities** from each `STEEKKAART.PS_BIJLAGEN[]`:
-    - VIAF → (numeric part derived from the URL; see note below)
-    - Wikidata → QID from URL
-    - DBNL → ID from URL query param
-- **Names**
-  - From each `STEEKKAART.PS_NAMEN[]`:
-    - Items with `NAAMSOORT` containing `"voornaam"` → `Person.name.first` (concatenated)
-    - Items with `NAAMSOORT` containing `"familienaam"` → the first becomes `Person.name.last`; the rest are appended to `Person.name.alias`
-    - All other `NAAMSOORT` values → appended to `Person.name.alias`
-- **Birth / Death**
-  - `STEEKKAART.PS_GEBOORTEPLAATS`, `STEEKKAART.PS_GEBOORTEDATUM`
-  - `STEEKKAART.PS_OVERLIJDENSPLAATS`, `STEEKKAART.PS_OVERLIJDENSDATUM`
-- **Pictures**
-  - From `STEEKKAART.PS_ILLUSTRATIES[]`: the code appends `"ID: <ID>"` (comma-separated) to `Person.picture`
-
-Finally, the script writes a CSV using `scripts.person.write_csv(OUTPUT, persons)`, which emits the VNA header and column order defined by your project.
-
----
-
-## Requirements
-
-- **Python** 3.9+ (recommended)
-- Local project module `scripts.person` resolvable from the repository root (the script prepends `Path(__file__).parents[2]` to `sys.path`)
-
-Install project deps as you normally do for this repo.
-
----
-
-## Input JSON shape (essential fields)
-
-A simplified example of the structure the script expects:
-
-```json
-[
-  {
-    "URL": "https://odis.be/xyz/123",
-    "RUBRIEK": "AGENT",
-    "ID": "123",
-    "OMSCHRIJVING": "Full display name",
-    "STEEKKAART": [
-      {
-        "PS_NAMEN": [
-          {"NAAMSOORT": "voornaam", "NAAM": "Jan"},
-          {"NAAMSOORT": "familienaam", "NAAM": "Peeters"},
-          {"NAAMSOORT": "alias", "NAAM": "J. Peeters"}
-        ],
-        "PS_GEBOORTEPLAATS": "Antwerpen",
-        "PS_GEBOORTEDATUM": "1901-01-01",
-        "PS_OVERLIJDENSPLAATS": "Brussel",
-        "PS_OVERLIJDENSDATUM": "1977-03-14",
-        "PS_ILLUSTRATIES": [{"ID": "IMG-001"}],
-        "PS_BIJLAGEN": [
-          {"B_LINKTXT": "Wikidata", "B_URL": "https://www.wikidata.org/wiki/Q42"},
-          {"B_LINKTXT": "Virtual International Authority File (VIAF)", "B_URL": "https://viaf.org/viaf/44300636/"},
-          {"B_LINKTXT": "Digitale Bibliotheek voor de Nederlandse Letteren", "B_URL": "https://www.dbnl.org/auteurs/auteur.php?id=mult002"}
-        ]
-      }
-    ]
-  }
-]
-```
-
----
-
-## Usage
-
-```bash
-python parse_odis.py /absolute/path/to/odis.json /absolute/path/to/output.csv
-```
-
-- `argv[1]` → input JSON file path (`FILE`)
-- `argv[2]` → output CSV path (`OUTPUT`)
-
-The script will iterate all top-level records and write the CSV using the VNA header/order from `scripts.person.write_csv`.
-
----
-
-## Notes & caveats
-
-- **Name logic** is simple and string-based:
-  - “voornaam” → first names, concatenated with spaces
-  - “familienaam” → the first is `last`; the remainder go to `alias`
-  - any other `NAAMSOORT` → appended to `alias`
-- **VIAF mapping**: the code assigns `person.viaf = identifier`. If your `Person` dataclass stores VIAF under `person.identifier.viaf` (typical in this repo), you may want to adapt that assignment in the code. (Documentation here simply reflects current behavior.)
-- **Pictures**: `PS_ILLUSTRATIES[].ID` values are concatenated into `person.picture` as `"ID: <ID>"`, comma-separated.
-- **Multiple “steekkaarten”**: the script processes each one and keeps appending/overwriting fields on the same `Person`. This matches the current implementation.
-- **String cleanup** uses `beautify_string` to trim whitespace and trailing commas.

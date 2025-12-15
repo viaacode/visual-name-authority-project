@@ -230,14 +230,19 @@ def count_faces(detector: cv2.CascadeClassifier, img_bgr) -> int:
     Raises:
         cv2.error: If the input image is invalid (e.g., wrong type/shape).
     """
+    
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    faces = detector.detectMultiScale(
-        gray,
-        scaleFactor=SCALE_FACTOR,
-        minNeighbors=MIN_NEIGHBORS,
-        flags=cv2.CASCADE_SCALE_IMAGE,
-        minSize=(MIN_SIZE, MIN_SIZE),
-    )
+    try:
+        faces = detector.detectMultiScale(
+            gray,
+            scaleFactor=SCALE_FACTOR,
+            minNeighbors=MIN_NEIGHBORS,
+            flags=cv2.CASCADE_SCALE_IMAGE,
+            minSize=(MIN_SIZE, MIN_SIZE),
+        )
+    except RuntimeError as e:
+        print(e)
+
     return 0 if faces is None else int(len(faces))
 
 
