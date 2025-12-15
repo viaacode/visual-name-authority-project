@@ -19,7 +19,7 @@ mkvirtualenv visual_name_authority
 cat requirements.txt | xargs -n 1 -L 1 pip install
 ```
 
-## Gebruik 
+## Gebruik en documentatie
 
 Voordat je de scripts kan gebruiken, moet je je virtuele environment activeren:
 
@@ -27,3 +27,4 @@ Voordat je de scripts kan gebruiken, moet je je virtuele environment activeren:
 workon visual_name_authority
 ```
 
+Hoe je de scripts moet gebruiken kan je lezen in de [README over de scripts](scripts/README.md)
