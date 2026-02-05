@@ -1,9 +1,9 @@
 """Download Wikimedia Commons files per CSV row by category and/or single file.
 
-For each row in `SOURCE_FILE`:
+For each row in `source_file`:
   - If 'Commonscategorie' is present, download all files in that Commons
-    category into `<OUTPUT_FOLDER>/<Wikidata ID>/`.
-  - If 'afbeelding' is present, download that one Commons file title into the
+    category into `<output_folder>/<Wikidata ID>/`.
+  - If 'profielfoto' is present, download that one Commons file title into the
     same directory.
 
 Technologies:
@@ -18,15 +18,12 @@ CSV must be UTF-8 and include headers:
   'Wikidata ID', 'volledige naam', 'Commonscategorie', 'afbeelding'.
 """
 
+from argparse import ArgumentParser, Namespace
 from csv import DictReader
 import os
 from pathlib import Path
-import shutil
-from sys import argv
 from pywikibot import Site, Category, pagegenerators
 
-SOURCE_FILE = argv[1]
-OUTPUT_FOLDER = argv[2]
 
 def download_category(download_path: str | Path, name: str) -> None:
     """Download all file pages in a Commons category into a directory.
@@ -54,6 +51,7 @@ def download_category(download_path: str | Path, name: str) -> None:
     generator = pagegenerators.CategorizedPageGenerator(category)
     for page in generator:
         filename = str(page.title())
+        print("filename is " + filename)
         if filename.startswith('File:'):
             filename = filename[5:]
         try:
@@ -62,7 +60,7 @@ def download_category(download_path: str | Path, name: str) -> None:
         except Exception as error:
             print(error)
 
-def download_image(download_path: str | Path, image):
+def download_image(download_path: str | Path, image: str):
     """Download a single Commons file by title using the `wikiget` CLI.
 
     Constructs the Commons title as 'File:<image>' and invokes:
@@ -81,25 +79,61 @@ def download_image(download_path: str | Path, image):
         - Requires 'wikiget' to be installed and in PATH.
         - Exit codes are not checked here; failures will print but not raise.
     """
-    image_path = "File:" + image
+    image_path = image
+    if not image_path.startswith('File:'):
+        image_path = "File:" + image
     output_path = f"{download_path}/{image}"
     command = f'wikiget \"{image_path}\" -o \"{output_path}\"'
     print("downloading " + image)
     os.system(command)
 
 
+def setup_parser() -> Namespace:
+    """Parse CLI arguments.
+
+    Returns:
+        A Namespace object containing all arguments
+    """
+    parser = ArgumentParser(
+        description="Get images from Wikimedia Commons"
+    )
+    parser.add_argument("source_file", type=str,
+                   help="Path to a text file with image paths (1 column).")
+    parser.add_argument("--output", '-o', type=str,
+                   help="Explicit output root directory.", required=True)
+    parser.add_argument("--profile", "-p", action="store_true",
+                   help="get pictures from Wikdata.")
+    parser.add_argument("--commons", "-c", action="store_true",
+                   help="get images from commons category.")
+
+    args = parser.parse_args()
+
+    return args
+
 if __name__ == '__main__':
-    with open(SOURCE_FILE, 'r', encoding='utf-8') as csv_file:
+
+    arguments = setup_parser()
+    source_file = arguments.source_file
+
+    with open(source_file, 'r', encoding='utf-8') as csv_file:
         reader =  DictReader(csv_file)
 
         for row in reader:
-            commons_category = row["Commonscategorie"]
-            image_file = row["afbeelding"]
+            
+            image_file = ''
+            commons_category = ''
+            output_folder = arguments.output
+
+            if arguments.profile:
+                image_file = row['profielfoto']
+
+            if arguments.commons:
+                commons_category = row['Commonscategorie']
 
             if commons_category or image_file:
                 # Creates <OUTPUT_FOLDER>/<Wikidata ID>/ and downloads category &/or file
                 print(f"busy with {row['Wikidata ID']}: {row['volledige naam']}")
-                PATH = f"{OUTPUT_FOLDER}/{row['Wikidata ID']}"
+                PATH = f"{output_folder}/{row['Wikidata ID']}"
                 Path(PATH).mkdir(parents=True, exist_ok=True)
 
                 if commons_category:
@@ -109,7 +143,3 @@ if __name__ == '__main__':
                     download_image(PATH, image_file)
 
                 print("done\n")
-
-    # Clean up Pywikibot artifacts in the current working directory:
-    shutil.rmtree('apicache')
-    os.remove('throttle.ctrl')

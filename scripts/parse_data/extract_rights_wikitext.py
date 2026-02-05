@@ -18,6 +18,11 @@ INPUT  = Path(argv[1])            # CSV with a 'Wikitext' column
 OUTPUT = Path(argv[2])
 
 WIKITEXT_COL = "Wikitext"
+DTYPE_MAP = {
+    "RKD ID": "string",
+    "VIAF_ID": "string",
+    "ISNI_ID": "string"
+}
 PREFERRED_LANGS = ('nl', 'en')     # preferred languages for multi-language metadata fields
 HEADER_OUTPUT_ROWS = {"license": 'profielfoto_licentie',
                       "author": 'profielfoto_maker'} #new column names
@@ -53,6 +58,7 @@ LICENSE_URI = {
 SPECIAL_TEMPLATES = {"wikiportrait", "nationaal archief"}
 
 UNKNOWN = "Onbekend" # default value when a value is unknown
+ANONIEM = "Anoniem" # default value for anonymous
 
 # -------------------------------------------------------------
 # Basic helpers
@@ -164,9 +170,17 @@ def extract_creator_name(templates: list[mw.nodes.Template]) -> str | None:
         The creator's name (string) if found, else None.
     """
     for template in templates:
+        print(template)
         creator_text = str(template.name).strip()
         if creator_text.lower().startswith("creator:"):
             return normalize_whitespace(creator_text.split(":", 1)[1])
+        if creator_text.lower() == "anefo":
+            return normalize_whitespace(template.params[0])
+        if creator_text.lower() == "unknown" or creator_text.lower():
+            return UNKNOWN
+        if creator_text.lower() == "anonymous":
+            return ANONIEM
+        
     return None
 
 def collect_language_hits(templates: list[mw.nodes.Template]) -> list[tuple[str]]:
@@ -635,7 +649,7 @@ def main():
     if not INPUT.exists():
         raise FileNotFoundError(f"CSV not found: {INPUT}")
 
-    df = pd.read_csv(INPUT)
+    df = pd.read_csv(INPUT, dtype=DTYPE_MAP)
     df = df.fillna('')
     if WIKITEXT_COL not in df.columns:
         raise KeyError(f"CSV must contain a '{WIKITEXT_COL}' column.")
