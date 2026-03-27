@@ -46,7 +46,7 @@ Wikitext
 ### Usage
 
 ```bash
-python extract_commons_author_license.py INPUT.csv OUTPUT.csv
+python extract_rights_wikitext.py INPUT.csv OUTPUT.csv
 ```
 
 * `INPUT.csv` – CSV with a `Wikitext` column
