@@ -436,12 +436,12 @@ The script expects these column headers (case-sensitive):
 * `Wikidata ID` – used to name the output subfolder for the row
 * `volledige naam` – printed for progress/logging (not used in filenames)
 * `Commonscategorie` – Commons category name without the `Category:` prefix (e.g., `Beethoven`)
-* `afbeelding` – Commons file title without `File:` (e.g., `Ludwig_van_Beethoven.jpg`)
+* `profielfoto` – Commons file title without `File:` (e.g., `Ludwig_van_Beethoven.jpg`)
 
 Example:
 
 ```csv
-Wikidata ID,volledige naam,Commonscategorie,afbeelding
+Wikidata ID,volledige naam,Commonscategorie,profielfoto
 Q255,Arnold Schoenberg,Schoenberg,Arnold_Schoenberg_1927.jpg
 Q7314,Ludwig van Beethoven,Beethoven,
 Q5598,Wolfgang Amadeus Mozart,,Wolfgang-amadeus-mozart_1756.jpg
@@ -456,7 +456,7 @@ For each row, a directory is created:
 ```
 
 * If `Commonscategorie` is present: all files in that category are downloaded to this directory.
-* If `afbeelding` is present: that single file is downloaded to this directory.
+* If `profielfoto` is present: that single file is downloaded to this directory.
 
 After processing all rows, the script removes two Pywikibot side effects in the working directory:
 * the `apicache/` folder
@@ -474,9 +474,9 @@ python get_pictures_by_url.py /path/to/input.csv /path/to/output_root
 ### How it works (brief)
 
 * **Categories**: Creates a Commons `Site` via Pywikibot, builds a `Category` from `Category:<Commonscategorie>`, then uses `pagegenerators.CategorizedPageGenerator` to iterate members. For each page whose title starts with `File:`, it calls `page.download(<path>)`.
-* **Single file**: Builds a Commons title File:<afbeelding> and runs:
+* **Single file**: Builds a Commons title File:<profielfoto> and runs:
     ```bash
-    wikiget "File:<afbeelding>" -o "<output_path>"
+    wikiget "File:<profielfoto>" -o "<output_path>"
     ```
 
 via `os.system`.

@@ -18,11 +18,7 @@ INPUT  = Path(argv[1])            # CSV with a 'Wikitext' column
 OUTPUT = Path(argv[2])
 
 WIKITEXT_COL = "Wikitext"
-DTYPE_MAP = {
-    "RKD ID": "string",
-    "VIAF_ID": "string",
-    "ISNI_ID": "string"
-}
+ID_COLUMNS = ["RKD ID", "VIAF ID", "ISNI ID"]
 PREFERRED_LANGS = ('nl', 'en')     # preferred languages for multi-language metadata fields
 HEADER_OUTPUT_ROWS = {"license": 'profielfoto_licentie',
                       "author": 'profielfoto_maker'} #new column names
@@ -176,7 +172,7 @@ def extract_creator_name(templates: list[mw.nodes.Template]) -> str | None:
             return normalize_whitespace(creator_text.split(":", 1)[1])
         if creator_text.lower() == "anefo":
             return normalize_whitespace(template.params[0])
-        if creator_text.lower() == "unknown" or creator_text.lower():
+        if creator_text.lower() == "unknown":
             return UNKNOWN
         if creator_text.lower() == "anonymous":
             return ANONIEM
@@ -649,8 +645,7 @@ def main():
     if not INPUT.exists():
         raise FileNotFoundError(f"CSV not found: {INPUT}")
 
-    df = pd.read_csv(INPUT, dtype=DTYPE_MAP)
-    df = df.fillna('')
+    df = pd.read_csv(INPUT, dtype={col: "string" for col in ID_COLUMNS}, keep_default_na=False)
     if WIKITEXT_COL not in df.columns:
         raise KeyError(f"CSV must contain a '{WIKITEXT_COL}' column.")
 

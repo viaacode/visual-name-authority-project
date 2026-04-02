@@ -15,7 +15,7 @@ After processing, the script removes `apicache` and `throttle.ctrl` created by
 Pywikibot in the current working directory.
 
 CSV must be UTF-8 and include headers:
-  'Wikidata ID', 'volledige naam', 'Commonscategorie', 'afbeelding'.
+  'Wikidata ID', 'volledige naam', 'Commonscategorie', 'profielfoto'.
 """
 
 from argparse import ArgumentParser, Namespace
